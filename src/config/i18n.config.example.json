@@ -40,6 +40,7 @@
     "functionName": "t",
     "autoImport": {
       "enabled": true,
+      "insertPosition": "afterImports",
       "imports": {
         "**/*.{js,jsx}": {
           "importStatement": "import { useTranslation } from 'react-i18next';\nconst { t } = useTranslation();"

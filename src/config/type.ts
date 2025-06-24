@@ -40,6 +40,7 @@ export interface I18nConfig {
     functionName?: string; // 替换函数名，默认 '$t'
     autoImport?: {
       enabled?: boolean; // 是否启用自动引入，默认 false
+      insertPosition?: 'top' | 'afterImports'; // 插入位置，默认 'afterImports'
       imports?: {
         [filePattern: string]: {
           importStatement: string; // 完整的import语句和变量声明

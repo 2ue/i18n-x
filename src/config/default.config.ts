@@ -53,6 +53,7 @@ export const defaultConfig: I18nConfig = {
     functionName: '$t', // 默认替换函数名
     autoImport: {
       enabled: false, // 默认不启用自动引入
+      insertPosition: 'afterImports', // 默认在import语句后插入
       imports: {}
     }
   }

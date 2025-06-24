@@ -13,40 +13,86 @@ const generate = require('@babel/generator').default;
 // 中文字符正则
 const CHINESE_RE = /[\u4e00-\u9fa5]/;
 
+
+
 /**
- * 检查代码中是否包含中文字符串
+ * 检查是否已经存在相同的import语句
  */
-function hasChineseText(code: string): boolean {
-  return CHINESE_RE.test(code);
+function hasExistingImport(ast: any, importStatement: string): boolean {
+  try {
+    const importAst = parse(importStatement, {
+      sourceType: 'module',
+      plugins: ['jsx', 'typescript']
+    });
+
+    if (!importAst.program?.body || importAst.program.body.length === 0) {
+      return false;
+    }
+
+    const newStatements = importAst.program.body;
+    const existingStatements = ast.program.body;
+
+    // 检查每个新语句是否已存在
+    for (const newStmt of newStatements) {
+      let found = false;
+      for (const existingStmt of existingStatements) {
+        // 比较AST节点的字符串表示（简单但有效的方法）
+        const newCode = generate(newStmt, { minified: true }).code;
+        const existingCode = generate(existingStmt, { minified: true }).code;
+        if (newCode === existingCode) {
+          found = true;
+          break;
+        }
+      }
+      if (!found) {
+        return false; // 有新语句不存在
+      }
+    }
+    return true; // 所有语句都已存在
+  } catch (error) {
+    Logger.verbose(`检查import重复时出错: ${error}`);
+    return false;
+  }
 }
 
 /**
- * 在AST顶部添加import语句
+ * 在AST中添加import语句（支持不同插入位置）
  */
-function addImportToAST(ast: any, importStatement: string): void {
+function addImportToAST(ast: any, importStatement: string, insertPosition: 'top' | 'afterImports' = 'afterImports'): void {
   try {
+    // 检查是否已存在相同的import语句
+    if (hasExistingImport(ast, importStatement)) {
+      Logger.verbose('Import语句已存在，跳过插入');
+      return;
+    }
+
     // 解析import语句为AST节点
     const importAst = parse(importStatement, {
       sourceType: 'module',
       plugins: ['jsx', 'typescript']
     });
 
-    // 将解析出的语句添加到文件开头
+    // 将解析出的语句添加到指定位置
     if (importAst.program?.body && importAst.program.body.length > 0) {
-      // 在现有import语句之后，其他语句之前插入
       let insertIndex = 0;
 
-      // 找到最后一个import语句的位置
-      for (let i = 0; i < ast.program.body.length; i++) {
-        if (t.isImportDeclaration(ast.program.body[i])) {
-          insertIndex = i + 1;
-        } else {
-          break;
+      if (insertPosition === 'afterImports') {
+        // 在现有import语句之后插入
+        for (let i = 0; i < ast.program.body.length; i++) {
+          if (t.isImportDeclaration(ast.program.body[i])) {
+            insertIndex = i + 1;
+          } else {
+            break;
+          }
         }
+      } else {
+        // 在文件顶部插入
+        insertIndex = 0;
       }
 
       // 插入新的语句
       ast.program.body.splice(insertIndex, 0, ...importAst.program.body);
+      Logger.verbose(`Import语句已插入到位置: ${insertPosition}`);
     }
   } catch (error) {
     Logger.warn(`无法解析import语句: ${importStatement}`);
@@ -145,17 +191,12 @@ export async function scanAndReplaceAll(): Promise<void> {
   // 获取替换配置
   const functionName = config.replacement?.functionName || '$t';
   const autoImportEnabled = config.replacement?.autoImport?.enabled || false;
+  const insertPosition = config.replacement?.autoImport?.insertPosition || 'afterImports';
   const imports = config.replacement?.autoImport?.imports || {};
 
   for (const file of files) {
     Logger.verbose(`正在处理文件: ${file}`);
     const code = await readFile(file, 'utf-8');
-
-    // 检查文件是否包含中文，如果没有则跳过
-    if (!hasChineseText(code)) {
-      Logger.verbose(`文件 ${file} 不包含中文，跳过处理`);
-      continue;
-    }
 
     let ast;
     try {
@@ -168,6 +209,23 @@ export async function scanAndReplaceAll(): Promise<void> {
       Logger.verbose(`错误详情: ${error}`);
       continue;
     }
+
+    // 跟踪是否已经插入import和是否发生了替换
+    let hasImportInserted = false;
+    let hasReplacement = false;
+
+    // 按需插入import的辅助函数
+    const ensureImportInserted = () => {
+      if (!hasImportInserted && autoImportEnabled && hasReplacement) {
+        const importStatement = findMatchingImport(file, imports);
+        if (importStatement) {
+          Logger.verbose(`为文件 ${file} 添加import语句`);
+          addImportToAST(ast, importStatement, insertPosition);
+          hasImportInserted = true;
+        }
+      }
+    };
+
     traverse(ast, {
       StringLiteral(path: any) {
         // 跳过类型定义位置的字符串字面量
@@ -178,6 +236,7 @@ export async function scanAndReplaceAll(): Promise<void> {
         if (CHINESE_RE.test(path.node.value)) {
           const key = createI18nKey(path.node.value, file);
           path.replaceWith(t.callExpression(t.identifier(functionName), [t.stringLiteral(key)]));
+          hasReplacement = true;
         }
       },
       TemplateElement(path: any) {
@@ -208,6 +267,7 @@ export async function scanAndReplaceAll(): Promise<void> {
           }
           path.node.value.raw = result;
           path.node.value.cooked = result;
+          hasReplacement = true;
         }
       },
       JSXText(path: any) {
@@ -216,6 +276,7 @@ export async function scanAndReplaceAll(): Promise<void> {
           path.replaceWith(
             t.jsxExpressionContainer(t.callExpression(t.identifier(functionName), [t.stringLiteral(key)]))
           );
+          hasReplacement = true;
         }
       },
       JSXAttribute(path: any) {
@@ -224,21 +285,20 @@ export async function scanAndReplaceAll(): Promise<void> {
           path.node.value = t.jsxExpressionContainer(
             t.callExpression(t.identifier(functionName), [t.stringLiteral(key)])
           );
+          hasReplacement = true;
         }
+      },
+      // 遍历结束时检查是否需要插入import
+      exit() {
+        ensureImportInserted();
       }
     });
 
-    // 如果启用了自动引入，添加相应的import语句
-    if (autoImportEnabled) {
-      const importStatement = findMatchingImport(file, imports);
-      if (importStatement) {
-        Logger.verbose(`为文件 ${file} 添加import语句`);
-        addImportToAST(ast, importStatement);
-      }
+    // 只有在发生替换时才输出文件
+    if (hasReplacement) {
+      const output = generate(ast, { retainLines: true }, code).code;
+      await writeFileWithTempDir(file, output, config.tempDir);
     }
-
-    const output = generate(ast, { retainLines: true }, code).code;
-    await writeFileWithTempDir(file, output, config.tempDir);
     await flushI18nCache();
   }
 
