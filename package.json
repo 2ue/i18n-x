@@ -1,0 +1,79 @@
+{
+  "name": "react-i18n-extractor",
+  "version": "1.0.0",
+  "description": "自动提取React项目中的中文字符串并进行国际化的CLI工具",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "type": "module",
+  "bin": {
+    "react-i18n-extractor": "dist/cli.cjs",
+    "ri18n": "dist/cli.cjs",
+    "i18nx": "dist/cli.cjs"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "lint": "eslint src --ext .ts,.tsx --fix",
+    "lint:check": "eslint src --ext .ts,.tsx",
+    "type-check": "tsc --noEmit",
+    "prepublishOnly": "pnpm run build",
+    "postpack": "echo '✅ 打包完成，可以使用 npm publish 发布'"
+  },
+  "keywords": [
+    "i18n",
+    "internationalization",
+    "react",
+    "cli",
+    "typescript",
+    "babel",
+    "ast",
+    "chinese",
+    "pinyin"
+  ],
+  "author": "",
+  "license": "ISC",
+  "repository": {
+    "type": "git",
+    "url": ""
+  },
+  "devDependencies": {
+    "@babel/cli": "^7.27.2",
+    "@babel/core": "^7.27.4",
+    "@types/babel__generator": "^7.27.0",
+    "@types/babel__traverse": "^7.20.7",
+    "@types/fs-extra": "^11.0.4",
+    "@types/inquirer": "^9.0.8",
+    "@types/lodash": "^4.17.18",
+    "@types/node": "^24.0.3",
+    "@types/string-hash": "^1.1.3",
+    "@typescript-eslint/eslint-plugin": "^8.13.0",
+    "@typescript-eslint/parser": "^8.13.0",
+    "eslint": "^9.15.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-prettier": "^5.2.1",
+    "prettier": "^3.3.3",
+    "tsup": "^8.5.0",
+    "typescript": "^5.8.3"
+  },
+  "dependencies": {
+    "@babel/generator": "^7.27.5",
+    "@babel/parser": "^7.27.5",
+    "@babel/traverse": "^7.27.4",
+    "@babel/types": "^7.27.6",
+    "commander": "^14.0.0",
+    "fast-glob": "^3.3.3",
+    "fs-extra": "^11.3.0",
+    "inquirer": "^12.6.3",
+    "lodash": "^4.17.21",
+    "pinyin-pro": "^3.26.0",
+    "string-hash": "^1.1.3"
+  }
+}

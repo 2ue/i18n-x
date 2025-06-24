@@ -1,0 +1,13 @@
+{
+  "locale": "zh-CN",
+  "fallbackLocale": "en-US",
+  "outputDir": "locales",
+  "include": [
+    "test/demo/**/*.{js,ts,jsx,tsx}"
+  ],
+  "exclude": [
+    "node_modules/**",
+    "dist/**"
+  ],
+  "tempDir": "test/temp/"
+}
