@@ -4,7 +4,7 @@ on:
     types: [to-publish-npm]
 
 jobs:
-  pre-publish:
+  publish:
     # needs: test
     runs-on: ubuntu-latest
     steps:

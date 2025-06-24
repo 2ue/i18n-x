@@ -2,6 +2,8 @@ import { TranslationProvider, TranslationResult, TranslationConfig } from './ind
 import { BaiduTranslationProvider } from './providers/baidu';
 import { Logger } from '../utils/logger';
 import { TranslationQueue } from './queue';
+import { readJson, writeJson, fileExists } from '../utils/fs';
+import * as path from 'path';
 
 export class TranslationManager {
   private providers: Map<string, TranslationProvider> = new Map();
@@ -64,8 +66,8 @@ export class TranslationManager {
   }
 
   /**
- * 批量翻译文本数组（使用并发控制和重试机制）
- */
+   * 批量翻译文本数组（使用并发控制和重试机制）
+   */
   async translateBatch(
     texts: string[],
     from: string = this.config.defaultSourceLang || 'auto',
@@ -125,6 +127,80 @@ export class TranslationManager {
     Logger.info(`批量翻译完成，成功: ${stats.completed}，失败: ${stats.failed}，总计: ${texts.length}`);
 
     return results;
+  }
+
+  /**
+   * 翻译JSON文件
+   */
+  async translateJsonFile(
+    jsonPath: string,
+    from: string = this.config.defaultSourceLang || 'auto',
+    to: string = this.config.defaultTargetLang || 'en'
+  ): Promise<{ outputPath: string; totalCount: number; successCount: number }> {
+    if (!fileExists(jsonPath)) {
+      throw new Error(`JSON文件不存在: ${jsonPath}`);
+    }
+
+    Logger.info(`📖 读取JSON文件: ${jsonPath}`);
+
+    const jsonContent = await readJson(jsonPath);
+    const texts = Object.values(jsonContent).filter(v => typeof v === 'string') as string[];
+
+    if (texts.length === 0) {
+      throw new Error('JSON文件中没有找到可翻译的字符串值');
+    }
+
+    Logger.info(`🔄 开始翻译 ${texts.length} 个文本条目...`);
+    const results = await this.translateBatch(texts, from, to);
+
+    // 创建翻译后的JSON对象
+    const translatedJson: Record<string, string> = {};
+    const originalKeys = Object.keys(jsonContent);
+    let resultIndex = 0;
+
+    originalKeys.forEach(key => {
+      const value = jsonContent[key];
+      if (typeof value === 'string') {
+        translatedJson[key] = results[resultIndex]?.translatedText || value;
+        resultIndex++;
+      } else {
+        translatedJson[key] = value; // 保持非字符串值不变
+      }
+    });
+
+    // 生成输出文件名
+    const outputPath = jsonPath.replace(/\.json$/, `.${to}.json`);
+    await writeJson(outputPath, translatedJson, true);
+
+    const successCount = results.filter(r => r.translatedText !== r.originalText).length;
+
+    Logger.info(`✅ 翻译完成，结果保存到: ${outputPath}`);
+    Logger.info(`📊 成功翻译: ${successCount}/${texts.length}`);
+
+    return {
+      outputPath,
+      totalCount: texts.length,
+      successCount
+    };
+  }
+
+  /**
+   * 批量翻译语言文件（从配置的源语言文件翻译）
+   */
+  async translateLanguageFiles(
+    outputDir: string,
+    sourceLocale: string,
+    from: string = this.config.defaultSourceLang || 'auto',
+    to: string = this.config.defaultTargetLang || 'en'
+  ): Promise<{ outputPath: string; totalCount: number; successCount: number }> {
+    const sourcePath = path.join(outputDir, `${sourceLocale}.json`);
+
+    if (!fileExists(sourcePath)) {
+      throw new Error(`源语言文件不存在: ${sourcePath}，请先运行生成命令创建源语言文件`);
+    }
+
+    Logger.info(`📖 从源语言文件读取: ${sourcePath}`);
+    return await this.translateJsonFile(sourcePath, from, to);
   }
 
   /**
