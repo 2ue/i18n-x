@@ -56,3 +56,6 @@ coverage/
 # Generated files
 locales/
 scan-result.json
+
+# Configuration files with sensitive data
+i18n.config.example.json

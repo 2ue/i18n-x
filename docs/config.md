@@ -326,6 +326,26 @@ i18nx extract -c ./my-custom-config.json
 - **默认值**: `"en"`
 - **说明**: 默认目标语言代码
 
+##### `translation.concurrency`
+- **类型**: `number`
+- **默认值**: `10`
+- **说明**: 并发翻译数量，控制同时进行的翻译请求数。百度翻译建议不超过10个并发
+
+##### `translation.retryTimes`
+- **类型**: `number`
+- **默认值**: `3`
+- **说明**: 翻译失败时的重试次数（不包括第一次尝试）
+
+##### `translation.retryDelay`
+- **类型**: `number`
+- **默认值**: `1000`
+- **说明**: 重试延迟时间，单位：毫秒。每次重试前等待的时间
+
+##### `translation.batchDelay`
+- **类型**: `number`
+- **默认值**: `1000`
+- **说明**: 批次间延迟时间，单位：毫秒。用于控制API调用频率，避免触发限流
+
 ##### `translation.baidu`
 - **类型**: `object`
 - **说明**: 百度翻译API配置
@@ -345,6 +365,10 @@ i18nx extract -c ./my-custom-config.json
     "provider": "baidu",
     "defaultSourceLang": "zh",
     "defaultTargetLang": "en",
+    "concurrency": 10,
+    "retryTimes": 3,
+    "retryDelay": 0,
+    "batchDelay": 0,
     "baidu": {
       "appid": "your_baidu_app_id",
       "key": "your_baidu_api_key"
@@ -363,18 +387,30 @@ i18nx extract -c ./my-custom-config.json
 #### 使用翻译功能
 
 ```bash
-# 翻译单个文本
-i18n-xy translate -i "你好世界"
+# 测试翻译单个文本
+i18n-xy translate --test -i "你好世界" -f zh -t en
 
 # 翻译文件内容
-i18n-xy translate -i ./input.txt
+i18n-xy translate -i ./input.txt -f zh -t en
 
-# 批量翻译语言文件
+# 翻译指定的JSON文件
+i18n-xy translate -j ./locales/zh-CN.json -f zh -t en
+
+# 批量翻译语言文件（从默认语言文件翻译）
 i18n-xy translate --batch -f zh -t en
 
 # 指定翻译方向
 i18n-xy translate -i "Hello World" -f en -t zh
 ```
+
+##### CLI参数说明
+
+- `-i, --input <text|file>`: 要翻译的文本或文件路径
+- `-j, --json <file>`: 指定要翻译的JSON文件路径
+- `-f, --from <lang>`: 源语言代码（如：zh, en, auto）
+- `-t, --to <lang>`: 目标语言代码（如：en, zh, ja, ko）
+- `--batch`: 批量翻译语言文件（从配置的源语言文件翻译）
+- `--test`: 测试模式，用于验证翻译配置
 
 ### 日志配置
 

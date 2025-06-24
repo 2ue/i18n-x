@@ -118,17 +118,20 @@ i18nx extract -c ./src/config/i18n.config.json
 配置翻译功能后，可以自动翻译提取的中文字符串：
 
 ```bash
-# 翻译单个文本
-i18n-xy translate -i "你好世界"
+# 测试翻译功能
+i18n-xy translate --test -i "你好世界" -f zh -t en
 
-# 批量翻译语言文件（从中文翻译到英文）
+# 翻译指定JSON文件
+i18n-xy translate -j ./locales/zh-CN.json -f zh -t en
+
+# 批量翻译语言文件（从配置的源语言文件翻译）
 i18n-xy translate --batch -f zh -t en
 
-# 自定义翻译方向
+# 翻译文本或文件
 i18n-xy translate -i "Hello World" -f en -t zh
 ```
 
-**翻译配置示例**：
+**翻译配置示例**（包含并发控制和重试机制）：
 ```json
 {
   "translation": {
@@ -136,6 +139,10 @@ i18n-xy translate -i "Hello World" -f en -t zh
     "provider": "baidu",
     "defaultSourceLang": "zh",
     "defaultTargetLang": "en",
+    "concurrency": 10,
+    "retryTimes": 3,
+    "retryDelay": 0,
+    "batchDelay": 0,
     "baidu": {
       "appid": "your_baidu_app_id",
       "key": "your_baidu_api_key"

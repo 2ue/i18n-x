@@ -1,6 +1,7 @@
 import { TranslationProvider, TranslationResult, TranslationConfig } from './index';
 import { BaiduTranslationProvider } from './providers/baidu';
 import { Logger } from '../utils/logger';
+import { TranslationQueue } from './queue';
 
 export class TranslationManager {
   private providers: Map<string, TranslationProvider> = new Map();
@@ -34,8 +35,8 @@ export class TranslationManager {
    */
   async translate(
     text: string,
-    from: string = this.config.defaultSourceLang,
-    to: string = this.config.defaultTargetLang
+    from: string = this.config.defaultSourceLang || 'auto',
+    to: string = this.config.defaultTargetLang || 'en'
   ): Promise<TranslationResult> {
     if (!this.config.enabled) {
       throw new Error('翻译服务未启用');
@@ -63,40 +64,66 @@ export class TranslationManager {
   }
 
   /**
-   * 批量翻译文本数组
-   */
+ * 批量翻译文本数组（使用并发控制和重试机制）
+ */
   async translateBatch(
     texts: string[],
-    from: string = this.config.defaultSourceLang,
-    to: string = this.config.defaultTargetLang,
-    batchSize: number = 5
+    from: string = this.config.defaultSourceLang || 'auto',
+    to: string = this.config.defaultTargetLang || 'en'
   ): Promise<TranslationResult[]> {
     if (!this.config.enabled) {
       throw new Error('翻译服务未启用');
     }
 
+    const concurrency = this.config.concurrency || 10;
+    const retryTimes = this.config.retryTimes || 3;
+    const retryDelay = this.config.retryDelay || 0;
+
+    Logger.info(`开始批量翻译，文本数量: ${texts.length}，并发数: ${concurrency}，重试次数: ${retryTimes}`);
+
+    // 创建翻译队列
+    const queue = new TranslationQueue(concurrency);
+
+    // 添加翻译任务到队列
+    texts.forEach((text, index) => {
+      queue.addTask({
+        id: `translate_${index}`,
+        execute: () => this.translate(text, from, to),
+        maxRetries: retryTimes,
+        retryDelay: retryDelay
+      });
+    });
+
+    // 执行所有任务
+    const completedResults = await queue.executeAll();
+
+    // 整理结果
     const results: TranslationResult[] = [];
+    const failedTasks = queue.getFailedTasks();
 
-    // 分批处理，避免API限流
-    for (let i = 0; i < texts.length; i += batchSize) {
-      const batch = texts.slice(i, i + batchSize);
-      const batchPromises = batch.map(text => this.translate(text, from, to));
+    for (let i = 0; i < texts.length; i++) {
+      const taskId = `translate_${i}`;
+      const result = completedResults.get(taskId);
 
-      try {
-        const batchResults = await Promise.all(batchPromises);
-        results.push(...batchResults);
-
-        // 批次间延迟，避免API限流
-        if (i + batchSize < texts.length) {
-          await new Promise(resolve => setTimeout(resolve, 1000));
-        }
-      } catch (error) {
-        Logger.error(`批量翻译第 ${Math.floor(i / batchSize) + 1} 批次失败: ${error}`);
-        throw error;
+      if (result) {
+        results.push(result);
+      } else {
+        const error = failedTasks.get(taskId);
+        Logger.error(`文本 "${texts[i]}" 翻译失败: ${error?.message || '未知错误'}`);
+        // 为失败的翻译创建一个占位结果
+        results.push({
+          originalText: texts[i]!,
+          translatedText: texts[i]!, // 失败时返回原文
+          sourceLanguage: from as string,
+          targetLanguage: to as string,
+          provider: this.config.provider
+        });
       }
     }
 
-    Logger.info(`批量翻译完成，共处理 ${texts.length} 条文本`);
+    const stats = queue.getStats();
+    Logger.info(`批量翻译完成，成功: ${stats.completed}，失败: ${stats.failed}，总计: ${texts.length}`);
+
     return results;
   }
 

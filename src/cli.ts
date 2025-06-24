@@ -67,10 +67,12 @@ program
   .command('translate')
   .description('翻译中文字符串到其他语言')
   .option('-c, --config <path>', '指定配置文件路径', './i18n.config.json')
-  .option('-f, --from <from>', '源语言代码', 'zh')
-  .option('-t, --to <to>', '目标语言代码', 'en')
+  .option('-f, --from <from>', '源语言代码（如：zh, en, auto）')
+  .option('-t, --to <to>', '目标语言代码（如：en, zh, ja, ko）')
   .option('-i, --input <input>', '要翻译的文本或文件路径')
-  .option('--batch', '批量翻译语言文件中的值')
+  .option('-j, --json <json>', '指定要翻译的JSON文件路径')
+  .option('--batch', '批量翻译语言文件（从配置的源语言文件翻译）')
+  .option('--test', '测试模式：翻译单个文本')
   .action(async (options) => {
     try {
       const { translateCommand } = await import('./translation/cli');

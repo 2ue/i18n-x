@@ -56,6 +56,10 @@
     "provider": "baidu",
     "defaultSourceLang": "zh",
     "defaultTargetLang": "en",
+    "concurrency": 10,
+    "retryTimes": 3,
+    "retryDelay": 0,
+    "batchDelay": 0,
     "baidu": {
       "appid": "your_baidu_app_id",
       "key": "your_baidu_api_key"

@@ -55,6 +55,10 @@ export interface I18nConfig {
     provider?: 'baidu' | 'custom'; // 翻译服务提供者，默认 'baidu'
     defaultSourceLang?: string; // 默认源语言，默认 'zh'
     defaultTargetLang?: string; // 默认目标语言，默认 'en'
+    concurrency?: number; // 并发翻译数量，默认 10
+    retryTimes?: number; // 重试次数（不包括第一次），默认 3
+    retryDelay?: number; // 重试延迟时间（毫秒），默认 0
+    batchDelay?: number; // 批次间延迟时间（毫秒），默认 0
     baidu?: {
       appid?: string; // 百度翻译 APP ID
       key?: string; // 百度翻译 API Key

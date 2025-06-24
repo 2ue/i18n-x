@@ -29,6 +29,10 @@ export interface TranslationConfig {
   provider: 'baidu' | 'custom';
   defaultSourceLang: string;
   defaultTargetLang: string;
+  concurrency?: number;
+  retryTimes?: number;
+  retryDelay?: number;
+  batchDelay?: number;
   baidu?: {
     appid: string;
     key: string;
