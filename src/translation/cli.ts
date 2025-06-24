@@ -1,8 +1,8 @@
 import { ConfigManager, loadConfig } from '../config';
 import { TranslationManager } from './manager';
-import { readFile, writeJson, fileExists } from '../utils/fs';
+import { readFile, fileExists } from '../utils/fs';
 import { Logger } from '../utils/logger';
-import { resolve } from 'path';
+
 import * as fs from 'fs-extra';
 import * as path from 'path';
 
@@ -105,7 +105,6 @@ async function translateJsonFile(
   jsonPath: string,
   from: string,
   to: string,
-  config: any
 ): Promise<void> {
   if (!await fs.pathExists(jsonPath)) {
     console.error(`❌ JSON文件不存在: ${jsonPath}`);
@@ -270,7 +269,6 @@ async function translateBatch(
     console.log(`✅ 批量翻译完成: ${targetFile}`);
     console.log(`📈 新增翻译: ${results.length} 条`);
     console.log(`📊 总计翻译: ${Object.keys(targetData).length} 条`);
-
   } catch (error) {
     console.error(`❌ 批量翻译失败: ${error}`);
   }

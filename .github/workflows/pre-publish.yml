@@ -1,0 +1,94 @@
+name: Pre Publish
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  pre-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+          fetch-depth: 0
+
+      - name: Set timezone to Asia/Shanghai
+        uses: szenius/set-timezone@v2.0
+        with:
+          timezoneLinux: "Asia/Shanghai"
+
+      - name: Echo current time
+        run: timedatectl
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.11.1
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 8
+
+      - name: Get pnpm store directory
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+
+      - name: Setup pnpm cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install Dependence
+        run: pnpm install --frozen-lockfile
+
+      - name: Type check
+        run: pnpm run type-check
+
+      - name: Lint check
+        run: pnpm run lint:check
+
+      - name: Build dist
+        run: |
+          git pull -p
+          pnpm run build
+
+      - name: Test build artifacts
+        run: |
+          # 测试CLI是否能正常运行
+          node dist/cli.cjs --help
+
+      - name: Pre publish
+        run: npm publish --dry-run
+        env:
+          NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
+
+      - uses: dorny/paths-filter@v3
+        id: changes
+        with:
+          filters: |
+            update:
+              - 'src/**'
+              - 'docs/**'
+              - README.md
+              - package.json
+              - tsup.config.ts
+              - tsconfig.json
+              - .babelrc
+              - .github/workflows/publish.yml
+
+      - name: Repository Dispatch
+        if: steps.changes.outputs.update == 'true'
+        uses: peter-evans/repository-dispatch@v3
+        with:
+          token: ${{ secrets.TOKEN }}
+          # 也可以直接写成R： GITHUB_REPOSITORY
+          # https://docs.github.com/zh/actions/learn-github-actions/variables
+          repository: ${{ github.repository }}
+          event-type: to-publish-npm

@@ -5,13 +5,14 @@ import { loadConfig, ConfigManager } from './config';
 import { scanAndReplaceAll } from './ast';
 import { writeJson } from './utils/fs';
 import { defaultConfig } from './config/default.config';
+import { version } from '../package.json';
 
 const program = new Command();
 
 program
   .name('i18n-xy')
   .description('自动提取React项目中的中文字符串并国际化')
-  .version('1.0.0');
+  .version(version);
 
 program
   .command('init')
