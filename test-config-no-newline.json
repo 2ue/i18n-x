@@ -1,0 +1,40 @@
+{
+  "locale": "zh-CN",
+  "fallbackLocale": "en-US",
+  "outputDir": "locales",
+  "tempDir": "temp-i18n",
+  "include": [
+    "src/**/*.{js,jsx,ts,tsx}"
+  ],
+  "exclude": [
+    "node_modules/**",
+    "dist/**",
+    "build/**",
+    "**/*.test.{js,jsx,ts,tsx}",
+    "**/*.spec.{js,jsx,ts,tsx}",
+    "**/*.stories.{js,ts,jsx,tsx}"
+  ],
+  "output": {
+    "prettyJson": true,
+    "localeFileName": "{locale}.json"
+  },
+  "logging": {
+    "enabled": true,
+    "level": "verbose"
+  },
+  "replacement": {
+    "functionName": "t",
+    "autoImport": {
+      "enabled": true,
+      "insertPosition": "afterImports",
+      "imports": {
+        "**/*.{js,jsx}": {
+          "importStatement": "import { useTranslation } from 'react-i18next';const { t } = useTranslation();"
+        },
+        "**/*.{ts,tsx}": {
+          "importStatement": "import { useTranslation } from 'react-i18next';const { t } = useTranslation();"
+        }
+      }
+    }
+  }
+}

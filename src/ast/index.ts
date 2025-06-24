@@ -13,6 +13,17 @@ const generate = require('@babel/generator').default;
 // 中文字符正则
 const CHINESE_RE = /[\u4e00-\u9fa5]/;
 
+/**
+ * 格式化import语句，确保末尾有换行符
+ * 这样可以保证插入的代码格式正确，避免代码挤在一行
+ */
+function formatImportStatement(importStatement: string): string {
+  if (!importStatement.endsWith('\n')) {
+    return importStatement + '\n';
+  }
+  return importStatement;
+}
+
 
 
 /**
@@ -20,7 +31,10 @@ const CHINESE_RE = /[\u4e00-\u9fa5]/;
  */
 function hasExistingImport(ast: any, importStatement: string): boolean {
   try {
-    const importAst = parse(importStatement, {
+    // 确保import语句末尾有换行符，与实际插入的格式保持一致
+    const formattedImportStatement = formatImportStatement(importStatement);
+
+    const importAst = parse(formattedImportStatement, {
       sourceType: 'module',
       plugins: ['jsx', 'typescript']
     });
@@ -66,8 +80,14 @@ function addImportToAST(ast: any, importStatement: string, insertPosition: 'top'
       return;
     }
 
+    // 确保import语句末尾有换行符，保证代码格式正确
+    const formattedImportStatement = formatImportStatement(importStatement);
+    if (formattedImportStatement !== importStatement) {
+      Logger.verbose('自动添加换行符到import语句末尾');
+    }
+
     // 解析import语句为AST节点
-    const importAst = parse(importStatement, {
+    const importAst = parse(formattedImportStatement, {
       sourceType: 'module',
       plugins: ['jsx', 'typescript']
     });
