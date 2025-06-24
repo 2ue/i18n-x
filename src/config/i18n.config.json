@@ -9,7 +9,6 @@
     "node_modules/**",
     "dist/**",
     "build/**",
-    "**/*.d.ts",
     "**/*.test.{js,ts,jsx,tsx}",
     "**/*.spec.{js,ts,jsx,tsx}"
   ],

@@ -3,6 +3,7 @@ import { pinyin } from 'pinyin-pro';
 import * as path from 'path';
 import { ConfigManager } from './config';
 import stringHash from 'string-hash';
+import { Logger } from './utils/logger';
 
 interface KeyValueMap {
   [key: string]: string;
@@ -21,6 +22,11 @@ export async function initI18nCache(): Promise<void> {
 
   // 使用新的 readJson 函数，带默认值
   keyValueCache = await readJson<KeyValueMap>(outputFilePath, {});
+  const existingKeyCount = Object.keys(keyValueCache).length;
+
+  if (existingKeyCount > 0) {
+    Logger.verbose(`加载了 ${existingKeyCount} 个已存在的翻译键`);
+  }
 
   // 如果文件不存在，初始化写入
   await writeJson(outputFilePath, keyValueCache);
@@ -44,10 +50,10 @@ function handleDuplicateKey(baseKey: string, text: string, filePath?: string): s
       // 重复使用相同的key（推荐）
       if (keyValueCache[baseKey] && keyValueCache[baseKey] !== text) {
         // 如果key已存在但内容不同，显示警告
-        console.warn(`⚠️  Key "${baseKey}" already exists with different content:`);
-        console.warn(`   Existing: "${keyValueCache[baseKey]}"`);
-        console.warn(`   New: "${text}"`);
-        console.warn(`   Using existing key.`);
+        Logger.warn(`Key "${baseKey}" 已存在但内容不同:`);
+        Logger.warn(`   已存在: "${keyValueCache[baseKey]}"`);
+        Logger.warn(`   新内容: "${text}"`);
+        Logger.warn(`   使用已存在的key`);
       }
       return baseKey;
 
@@ -56,12 +62,13 @@ function handleDuplicateKey(baseKey: string, text: string, filePath?: string): s
       if (!keyValueCache[baseKey]) {
         return baseKey;
       }
-      let finalKey = baseKey + '_' + toShortHash(text);
+      const separator = config.keyGeneration?.separator || '_';
+      let finalKey = baseKey + separator + toShortHash(text);
       let tryCount = 0;
       const maxRetry = config.keyGeneration?.maxRetryCount || 5;
 
       while (keyValueCache[finalKey] && tryCount < maxRetry) {
-        finalKey = baseKey + '_' + toShortHash(text + Math.random().toString());
+        finalKey = baseKey + separator + toShortHash(text + Math.random().toString());
         tryCount++;
       }
       return finalKey;
@@ -71,12 +78,13 @@ function handleDuplicateKey(baseKey: string, text: string, filePath?: string): s
       if (!keyValueCache[baseKey]) {
         return baseKey;
       }
+      const contextSeparator = config.keyGeneration?.separator || '_';
       if (filePath) {
         const fileName = path.basename(filePath, path.extname(filePath));
-        const contextKey = `${fileName}_${baseKey}`;
-        return keyValueCache[contextKey] ? contextKey + '_' + toShortHash(text) : contextKey;
+        const contextKey = `${fileName}${contextSeparator}${baseKey}`;
+        return keyValueCache[contextKey] ? contextKey + contextSeparator + toShortHash(text) : contextKey;
       }
-      return baseKey + '_' + toShortHash(text);
+      return baseKey + contextSeparator + toShortHash(text);
 
     case 'error':
       // 遇到重复时报错
@@ -91,11 +99,11 @@ function handleDuplicateKey(baseKey: string, text: string, filePath?: string): s
     case 'warning':
       // 显示警告但重复使用key
       if (keyValueCache[baseKey] && keyValueCache[baseKey] !== text) {
-        console.warn(`⚠️  Duplicate key "${baseKey}" found with different content:`);
-        console.warn(`   Existing: "${keyValueCache[baseKey]}"`);
-        console.warn(`   New: "${text}"`);
-        console.warn(`   File: ${filePath || 'unknown'}`);
-        console.warn(`   Reusing existing key.`);
+        Logger.warn(`重复key "${baseKey}" 发现不同内容:`);
+        Logger.warn(`   已存在: "${keyValueCache[baseKey]}"`);
+        Logger.warn(`   新内容: "${text}"`);
+        Logger.warn(`   文件: ${filePath || 'unknown'}`);
+        Logger.warn(`   重复使用已存在key`);
       }
       return baseKey;
 
@@ -115,19 +123,26 @@ export function createI18nKey(text: string, filePath?: string): string {
     return '';
   }
 
-  // 生成基础key
+  // 获取配置
   const pinyinOptions = config.keyGeneration?.pinyinOptions || { toneType: 'none', type: 'array' };
+  const separator = config.keyGeneration?.separator || '_';
+  const keyPrefix = config.keyGeneration?.keyPrefix || '';
+
+  // 生成基础key
   const baseKey = (pinyin(han, {
     toneType: pinyinOptions.toneType || 'none',
     type: 'array'
-  }) ?? []).join('_');
+  }) ?? []).join(separator);
 
   if (!baseKey) {
     return '';
   }
 
+  // 构建完整key（添加前缀）
+  const keyWithPrefix = keyPrefix ? `${keyPrefix}${separator}${baseKey}` : baseKey;
+
   // 处理重复key
-  const finalKey = handleDuplicateKey(baseKey, text, filePath);
+  const finalKey = handleDuplicateKey(keyWithPrefix, text, filePath);
 
   // 缓存到内存
   keyValueCache[finalKey] = text;
@@ -140,5 +155,7 @@ export async function flushI18nCache(): Promise<void> {
     const config = ConfigManager.get();
     const prettyJson = config.output?.prettyJson !== false;
     await writeJson(outputFilePath, keyValueCache, prettyJson);
+    const keyCount = Object.keys(keyValueCache).length;
+    Logger.verbose(`已保存 ${keyCount} 个翻译键到 ${outputFilePath}`);
   }
 }

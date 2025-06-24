@@ -12,7 +12,6 @@
     "node_modules/**",
     "dist/**",
     "build/**",
-    "**/*.d.ts",
     "**/*.test.{js,jsx,ts,tsx}",
     "**/*.spec.{js,jsx,ts,tsx}",
     "**/*.stories.{js,ts,jsx,tsx}"
@@ -22,6 +21,8 @@
     "hashLength": 6,
     "maxRetryCount": 5,
     "duplicateKeyStrategy": "reuse",
+    "keyPrefix": "app",
+    "separator": "_",
     "pinyinOptions": {
       "toneType": "none",
       "type": "array"
@@ -30,5 +31,23 @@
   "output": {
     "prettyJson": true,
     "localeFileName": "{locale}.json"
+  },
+  "logging": {
+    "enabled": true,
+    "level": "normal"
+  },
+  "replacement": {
+    "functionName": "t",
+    "autoImport": {
+      "enabled": true,
+      "imports": {
+        "**/*.{js,jsx}": {
+          "importStatement": "import { useTranslation } from 'react-i18next';\nconst { t } = useTranslation();"
+        },
+        "**/*.{ts,tsx}": {
+          "importStatement": "import { useTranslation } from 'react-i18next';\nconst { t } = useTranslation();"
+        }
+      }
+    }
   }
 }

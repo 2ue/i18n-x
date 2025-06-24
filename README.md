@@ -1,4 +1,4 @@
-# React I18n Extractor
+# I18n-XY
 
 一个自动提取React项目中的中文字符串并进行国际化的CLI工具。
 
@@ -11,6 +11,11 @@
 - ⚡ 高性能的AST解析和代码转换
 - 🔧 丰富的配置选项，支持多种项目结构
 - 📦 支持临时目录输出，避免直接修改源文件
+- 🎨 支持自定义key前缀和连接符
+- 📊 可配置的日志输出级别
+- 🔍 智能的重复key处理策略
+- 🔧 自定义替换函数名，支持不同项目的i18n函数
+- 📦 智能自动引入功能，为不同文件类型添加相应的i18n import语句
 
 ## 技术栈
 
@@ -30,7 +35,7 @@
 ```bash
 # 克隆项目
 git clone <repository-url>
-cd react-i18n-extractor
+cd i18n-xy
 
 # 安装依赖
 pnpm install
@@ -43,10 +48,10 @@ pnpm run build
 
 ```bash
 # 从 npm 安装
-npm install -g react-i18n-extractor
+npm install -g i18n-xy
 
-# 或使用短名称
-npm install -g ri18n
+# 或使用 pnpm
+pnpm install -g i18n-xy
 ```
 
 ## 快速开始
@@ -58,9 +63,9 @@ npm install -g ri18n
 node dist/cli.js init
 
 # 或全局安装后使用
-react-i18n-extractor init
+i18n-xy init
 # 或
-ri18n init
+i18nx init
 ```
 
 这将在项目中生成默认的配置文件 `src/config/i18n.config.json`。
@@ -102,9 +107,9 @@ ri18n init
 node dist/cli.js extract -c ./src/config/i18n.config.json
 
 # 或全局安装后使用
-react-i18n-extractor extract -c ./src/config/i18n.config.json
+i18n-xy extract -c ./src/config/i18n.config.json
 # 或
-ri18n extract -c ./src/config/i18n.config.json
+i18nx extract -c ./src/config/i18n.config.json
 ```
 
 ## 配置文档
@@ -125,6 +130,8 @@ ri18n extract -c ./src/config/i18n.config.json
 ### Key 生成
 - `keyGeneration.maxChineseLength`: 最大中文字符长度
 - `keyGeneration.hashLength`: 哈希后缀长度
+- `keyGeneration.keyPrefix`: 自定义key前缀
+- `keyGeneration.separator`: 自定义连接符（默认下划线）
 - `keyGeneration.duplicateKeyStrategy`: 重复key处理策略
   - `"reuse"` (推荐): 相同文本重复使用相同key
   - `"suffix"`: 添加hash后缀保持唯一性
@@ -132,6 +139,15 @@ ri18n extract -c ./src/config/i18n.config.json
   - `"error"`: 遇到重复时报错
   - `"warning"`: 显示警告但继续处理
 - `keyGeneration.pinyinOptions`: 拼音转换选项
+
+### 替换配置
+- `replacement.functionName`: 自定义替换函数名（默认`$t`）
+- `replacement.autoImport.enabled`: 是否启用自动引入功能
+- `replacement.autoImport.imports`: 文件模式到import语句的映射配置
+
+### 日志控制
+- `logging.enabled`: 是否启用日志输出
+- `logging.level`: 日志级别 (`"minimal"`, `"normal"`, `"verbose"`)
 
 ### 输出控制
 - `output.prettyJson`: 是否格式化 JSON 输出
@@ -167,7 +183,7 @@ const messages = {
 
 ### 处理后的代码
 ```jsx
-// React 组件
+// React 组件（使用默认配置）
 export function Welcome({ userName }) {
   return (
     <div>
@@ -175,6 +191,22 @@ export function Welcome({ userName }) {
       <p>{$t('yong_hu')} {userName} {$t('yi_deng_lu')}</p>
       <button onClick={() => alert($t('cao_zuo_cheng_gong'))}>
         {$t('ti_jiao_biao_dan')}
+      </button>
+    </div>
+  );
+}
+
+// React 组件（启用自动引入和自定义函数名）
+import { useTranslation } from 'react-i18next';
+const { t } = useTranslation();
+
+export function Welcome({ userName }) {
+  return (
+    <div>
+      <h1>{t('huan_ying_shi_yong_wo_men_de_xi_tong')}</h1>
+      <p>{t('yong_hu')} {userName} {t('yi_deng_lu')}</p>
+      <button onClick={() => alert(t('cao_zuo_cheng_gong'))}>
+        {t('ti_jiao_biao_dan')}
       </button>
     </div>
   );
@@ -314,6 +346,50 @@ docs/
 }
 ```
 
+### React项目配置（自动引入）
+```json
+{
+  "locale": "zh-CN",
+  "outputDir": "src/locales",
+  "include": [
+    "src/**/*.{js,ts,jsx,tsx}"
+  ],
+  "replacement": {
+    "functionName": "t",
+    "autoImport": {
+      "enabled": true,
+      "imports": {
+        "src/**/*.{js,jsx,ts,tsx}": {
+          "importStatement": "import { useTranslation } from 'react-i18next';\nconst { t } = useTranslation();"
+        }
+      }
+    }
+  }
+}
+```
+
+### Vue项目配置（自动引入）
+```json
+{
+  "locale": "zh-CN",
+  "outputDir": "src/locales",
+  "include": [
+    "src/**/*.{js,ts,vue}"
+  ],
+  "replacement": {
+    "functionName": "$t",
+    "autoImport": {
+      "enabled": true,
+      "imports": {
+        "src/**/*.{js,ts,vue}": {
+          "importStatement": "import { useI18n } from 'vue-i18n';\nconst { t: $t } = useI18n();"
+        }
+      }
+    }
+  }
+}
+```
+
 ## 配置文件说明
 
 ### TypeScript配置
@@ -385,8 +461,8 @@ ISC
 ### Q: 如何在其他项目中使用这个CLI工具？
 
 A: 有两种方式：
-1. 全局安装：`npm install -g react-i18n-extractor`，然后在任意项目中使用 `react-i18n-extractor` 或 `ri18n`
-2. 本地安装：在目标项目中运行 `npm install react-i18n-extractor`，然后使用 `npx react-i18n-extractor`
+1. 全局安装：`npm install -g i18n-xy`，然后在任意项目中使用 `i18n-xy` 或 `i18nx`
+2. 本地安装：在目标项目中运行 `npm install i18n-xy`，然后使用 `npx i18n-xy`
 
 ### Q: 构建后为什么有两个入口文件？
 
