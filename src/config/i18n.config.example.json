@@ -50,5 +50,15 @@
         }
       }
     }
+  },
+  "translation": {
+    "enabled": true,
+    "provider": "baidu",
+    "defaultSourceLang": "zh",
+    "defaultTargetLang": "en",
+    "baidu": {
+      "appid": "your_baidu_app_id",
+      "key": "your_baidu_api_key"
+    }
   }
 }

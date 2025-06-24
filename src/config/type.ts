@@ -49,5 +49,21 @@ export interface I18nConfig {
     };
   };
 
+  // 翻译配置
+  translation?: {
+    enabled?: boolean; // 是否启用翻译功能，默认 false
+    provider?: 'baidu' | 'custom'; // 翻译服务提供者，默认 'baidu'
+    defaultSourceLang?: string; // 默认源语言，默认 'zh'
+    defaultTargetLang?: string; // 默认目标语言，默认 'en'
+    baidu?: {
+      appid?: string; // 百度翻译 APP ID
+      key?: string; // 百度翻译 API Key
+    };
+    custom?: {
+      endpoint?: string; // 自定义翻译服务端点
+      apiKey?: string; // 自定义API密钥
+    };
+  };
+
   [key: string]: unknown;
 }

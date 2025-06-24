@@ -56,5 +56,17 @@ export const defaultConfig: I18nConfig = {
       insertPosition: 'afterImports', // 默认在import语句后插入
       imports: {}
     }
+  },
+
+  // 翻译配置
+  translation: {
+    enabled: false, // 默认不启用翻译功能
+    provider: 'baidu', // 默认使用百度翻译
+    defaultSourceLang: 'zh', // 默认源语言：中文
+    defaultTargetLang: 'en', // 默认目标语言：英文
+    baidu: {
+      appid: '', // 需要用户配置
+      key: '' // 需要用户配置
+    }
   }
 };

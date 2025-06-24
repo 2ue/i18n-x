@@ -16,6 +16,7 @@
 - 🔍 智能的重复key处理策略
 - 🔧 自定义替换函数名，支持不同项目的i18n函数
 - 📦 智能自动引入功能，为不同文件类型添加相应的i18n import语句
+- 🌐 集成百度翻译API，支持自动翻译提取的字符串
 
 ## 技术栈
 
@@ -110,6 +111,38 @@ node dist/cli.js extract -c ./src/config/i18n.config.json
 i18n-xy extract -c ./src/config/i18n.config.json
 # 或
 i18nx extract -c ./src/config/i18n.config.json
+```
+
+### 4. 翻译功能（可选）
+
+配置翻译功能后，可以自动翻译提取的中文字符串：
+
+```bash
+# 翻译单个文本
+i18n-xy translate -i "你好世界"
+
+# 批量翻译语言文件（从中文翻译到英文）
+i18n-xy translate --batch -f zh -t en
+
+# 自定义翻译方向
+i18n-xy translate -i "Hello World" -f en -t zh
+```
+
+**翻译配置示例**：
+```json
+{
+  "translation": {
+    "enabled": true,
+    "provider": "baidu",
+    "defaultSourceLang": "zh",
+    "defaultTargetLang": "en",
+    "baidu": {
+      "appid": "your_baidu_app_id",
+      "key": "your_baidu_api_key"
+    }
+  }
+}
+```
 ```
 
 ## 配置文档

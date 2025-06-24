@@ -301,6 +301,81 @@ i18nx extract -c ./my-custom-config.json
 }
 ```
 
+### 翻译配置
+
+#### `translation` (可选)
+配置翻译服务功能，支持百度翻译API。
+
+##### `translation.enabled`
+- **类型**: `boolean`
+- **默认值**: `false`
+- **说明**: 是否启用翻译功能
+
+##### `translation.provider`
+- **类型**: `"baidu" | "custom"`
+- **默认值**: `"baidu"`
+- **说明**: 翻译服务提供者，目前支持百度翻译
+
+##### `translation.defaultSourceLang`
+- **类型**: `string`
+- **默认值**: `"zh"`
+- **说明**: 默认源语言代码
+
+##### `translation.defaultTargetLang`
+- **类型**: `string`
+- **默认值**: `"en"`
+- **说明**: 默认目标语言代码
+
+##### `translation.baidu`
+- **类型**: `object`
+- **说明**: 百度翻译API配置
+
+##### `translation.baidu.appid`
+- **类型**: `string`
+- **说明**: 百度翻译API的APP ID
+
+##### `translation.baidu.key`
+- **类型**: `string`
+- **说明**: 百度翻译API的密钥
+
+```json
+{
+  "translation": {
+    "enabled": true,
+    "provider": "baidu",
+    "defaultSourceLang": "zh",
+    "defaultTargetLang": "en",
+    "baidu": {
+      "appid": "your_baidu_app_id",
+      "key": "your_baidu_api_key"
+    }
+  }
+}
+```
+
+#### 获取百度翻译API密钥
+
+1. 登录 [百度翻译开放平台](https://fanyi-api.baidu.com/)
+2. 申请成为开发者
+3. 创建应用获取APP ID和密钥
+4. 将APP ID和密钥填入配置文件
+
+#### 使用翻译功能
+
+```bash
+# 翻译单个文本
+i18n-xy translate -i "你好世界"
+
+# 翻译文件内容
+i18n-xy translate -i ./input.txt
+
+# 批量翻译语言文件
+i18n-xy translate --batch -f zh -t en
+
+# 指定翻译方向
+i18n-xy translate -i "Hello World" -f en -t zh
+```
+
 ### 日志配置
 
 #### `logging` (可选)

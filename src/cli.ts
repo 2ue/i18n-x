@@ -63,4 +63,22 @@ program
     }
   });
 
+program
+  .command('translate')
+  .description('翻译中文字符串到其他语言')
+  .option('-c, --config <path>', '指定配置文件路径', './i18n.config.json')
+  .option('-f, --from <from>', '源语言代码', 'zh')
+  .option('-t, --to <to>', '目标语言代码', 'en')
+  .option('-i, --input <input>', '要翻译的文本或文件路径')
+  .option('--batch', '批量翻译语言文件中的值')
+  .action(async (options) => {
+    try {
+      const { translateCommand } = await import('./translation/cli');
+      await translateCommand(options);
+    } catch (error) {
+      console.error('❌ 翻译失败:', error);
+      process.exit(1);
+    }
+  });
+
 program.parse();
