@@ -68,7 +68,8 @@ export function findTargetFiles(include: string[], exclude: string[] = []): Prom
  * @param filePath 文件路径
  */
 export function fileExists(filePath: string): boolean {
-  return fs.existsSync(filePath);
+  const absPath = path.resolve(process.cwd(), filePath);
+  return fs.existsSync(absPath);
 }
 
 /**
@@ -76,7 +77,8 @@ export function fileExists(filePath: string): boolean {
  * @param filePath JSON 文件路径
  */
 export function readJsonSync(filePath: string): any {
-  return fs.readJsonSync(filePath);
+  const absPath = path.resolve(process.cwd(), filePath);
+  return fs.readJsonSync(absPath);
 }
 
 /**
