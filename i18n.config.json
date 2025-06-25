@@ -34,13 +34,13 @@
     "level": "verbose"
   },
   "replacement": {
-    "functionName": "$t",
+    "functionName": "$t1",
     "autoImport": {
       "enabled": true,
       "insertPosition": "afterImports",
       "imports": {
         "test/demo/**/*.{js,jsx,ts,tsx}": {
-          "importStatement": "import { useTranslation } from 'react-i18next';\nconst { $t } = useTranslation();"
+          "importStatement": "import { useTranslation } from 'react-i18next';\nconst { $t1 } = useTranslation();\n\n"
         }
       }
     }

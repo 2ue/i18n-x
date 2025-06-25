@@ -44,10 +44,10 @@
       "insertPosition": "afterImports",
       "imports": {
         "**/*.{js,jsx}": {
-          "importStatement": "import { useTranslation } from 'react-i18next';\nconst { t } = useTranslation();"
+          "importStatement": "import { useTranslation } from 'react-i18next';\nconst { t } = useTranslation();\n"
         },
         "**/*.{ts,tsx}": {
-          "importStatement": "import { useTranslation } from 'react-i18next';\nconst { t } = useTranslation();"
+          "importStatement": "import { useTranslation } from 'react-i18next';\nconst { t } = useTranslation();\n"
         }
       }
     }

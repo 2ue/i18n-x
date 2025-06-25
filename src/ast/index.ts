@@ -114,6 +114,7 @@ function addImportToAST(
 
       // 插入新的语句
       ast.program.body.splice(insertIndex, 0, ...importAst.program.body);
+
       Logger.verbose(`Import语句已插入到位置: ${insertPosition}`);
     }
   } catch (error) {
