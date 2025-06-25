@@ -58,4 +58,4 @@ locales/
 scan-result.json
 
 # Configuration files with sensitive data
-i18n.config.example.json
+/i18n.config.example.json

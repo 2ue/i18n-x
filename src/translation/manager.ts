@@ -19,7 +19,7 @@ export class TranslationManager {
     if (this.config.baidu?.appid && this.config.baidu?.key) {
       const baiduProvider = new BaiduTranslationProvider({
         appid: this.config.baidu.appid,
-        key: this.config.baidu.key
+        key: this.config.baidu.key,
       });
       this.providers.set('baidu', baiduProvider);
       Logger.verbose('百度翻译服务已初始化');
@@ -37,8 +37,8 @@ export class TranslationManager {
    */
   async translate(
     text: string,
-    from: string = this.config.defaultSourceLang || 'auto',
-    to: string = this.config.defaultTargetLang || 'en'
+    from: string = this.config.defaultSourceLang ?? 'auto',
+    to: string = this.config.defaultTargetLang ?? 'en'
   ): Promise<TranslationResult> {
     if (!this.config.enabled) {
       throw new Error('翻译服务未启用');
@@ -53,14 +53,16 @@ export class TranslationManager {
       throw new Error(`翻译服务提供者 '${this.config.provider}' 配置不完整`);
     }
 
-    Logger.verbose(`使用 ${provider.name} 翻译: "${text}" (${from} -> ${to})`);
+    const providerName = provider.name ?? this.config.provider;
+    Logger.verbose(`使用 ${providerName} 翻译: "${text}" (${from} -> ${to})`);
 
     try {
       const result = await provider.translate(text, from, to);
       Logger.info(`翻译完成: "${text}" -> "${result.translatedText}"`);
       return result;
     } catch (error) {
-      Logger.error(`翻译失败: ${error}`);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      Logger.error(`翻译失败: ${errorMessage}`);
       throw error;
     }
   }
@@ -70,18 +72,20 @@ export class TranslationManager {
    */
   async translateBatch(
     texts: string[],
-    from: string = this.config.defaultSourceLang || 'auto',
-    to: string = this.config.defaultTargetLang || 'en'
+    from: string = this.config.defaultSourceLang ?? 'auto',
+    to: string = this.config.defaultTargetLang ?? 'en'
   ): Promise<TranslationResult[]> {
     if (!this.config.enabled) {
       throw new Error('翻译服务未启用');
     }
 
-    const concurrency = this.config.concurrency || 10;
-    const retryTimes = this.config.retryTimes || 3;
-    const retryDelay = this.config.retryDelay || 0;
+    const concurrency = this.config.concurrency ?? 10;
+    const retryTimes = this.config.retryTimes ?? 3;
+    const retryDelay = this.config.retryDelay ?? 0;
 
-    Logger.info(`开始批量翻译，文本数量: ${texts.length}，并发数: ${concurrency}，重试次数: ${retryTimes}`);
+    Logger.info(
+      `开始批量翻译，文本数量: ${texts.length}，并发数: ${concurrency}，重试次数: ${retryTimes}`
+    );
 
     // 创建翻译队列
     const queue = new TranslationQueue(concurrency);
@@ -92,7 +96,7 @@ export class TranslationManager {
         id: `translate_${index}`,
         execute: () => this.translate(text, from, to),
         maxRetries: retryTimes,
-        retryDelay: retryDelay
+        retryDelay: retryDelay,
       });
     });
 
@@ -105,26 +109,32 @@ export class TranslationManager {
 
     for (let i = 0; i < texts.length; i++) {
       const taskId = `translate_${i}`;
-      const result = completedResults.get(taskId);
+      const result = completedResults.get(taskId) as TranslationResult | undefined;
 
       if (result) {
         results.push(result);
       } else {
         const error = failedTasks.get(taskId);
-        Logger.error(`文本 "${texts[i]}" 翻译失败: ${error?.message || '未知错误'}`);
-        // 为失败的翻译创建一个占位结果
-        results.push({
-          originalText: texts[i]!,
-          translatedText: texts[i]!, // 失败时返回原文
-          sourceLanguage: from as string,
-          targetLanguage: to as string,
-          provider: this.config.provider
-        });
+        const errorMessage = error?.message ?? '未知错误';
+        const currentText = texts[i];
+        if (currentText) {
+          Logger.error(`文本 "${currentText}" 翻译失败: ${errorMessage}`);
+          // 为失败的翻译创建一个占位结果
+          results.push({
+            originalText: currentText,
+            translatedText: currentText, // 失败时返回原文
+            sourceLanguage: from,
+            targetLanguage: to,
+            provider: this.config.provider,
+          });
+        }
       }
     }
 
     const stats = queue.getStats();
-    Logger.info(`批量翻译完成，成功: ${stats.completed}，失败: ${stats.failed}，总计: ${texts.length}`);
+    Logger.info(
+      `批量翻译完成，成功: ${stats.completed}，失败: ${stats.failed}，总计: ${texts.length}`
+    );
 
     return results;
   }
@@ -134,8 +144,8 @@ export class TranslationManager {
    */
   async translateJsonFile(
     jsonPath: string,
-    from: string = this.config.defaultSourceLang || 'auto',
-    to: string = this.config.defaultTargetLang || 'en'
+    from: string = this.config.defaultSourceLang ?? 'auto',
+    to: string = this.config.defaultTargetLang ?? 'en'
   ): Promise<{ outputPath: string; totalCount: number; successCount: number }> {
     if (!fileExists(jsonPath)) {
       throw new Error(`JSON文件不存在: ${jsonPath}`);
@@ -144,7 +154,9 @@ export class TranslationManager {
     Logger.info(`📖 读取JSON文件: ${jsonPath}`);
 
     const jsonContent = await readJson(jsonPath);
-    const texts = Object.values(jsonContent).filter(v => typeof v === 'string') as string[];
+    const texts = Object.values(jsonContent as Record<string, unknown>).filter(
+      (v): v is string => typeof v === 'string'
+    );
 
     if (texts.length === 0) {
       throw new Error('JSON文件中没有找到可翻译的字符串值');
@@ -154,14 +166,15 @@ export class TranslationManager {
     const results = await this.translateBatch(texts, from, to);
 
     // 创建翻译后的JSON对象
-    const translatedJson: Record<string, string> = {};
-    const originalKeys = Object.keys(jsonContent);
+    const translatedJson = {} as Record<string, unknown>;
+    const originalKeys = Object.keys(jsonContent as Record<string, unknown>);
     let resultIndex = 0;
 
-    originalKeys.forEach(key => {
-      const value = jsonContent[key];
+    originalKeys.forEach((key) => {
+      const value = (jsonContent as Record<string, unknown>)[key];
       if (typeof value === 'string') {
-        translatedJson[key] = results[resultIndex]?.translatedText || value;
+        const translationResult = results[resultIndex];
+        translatedJson[key] = translationResult?.translatedText ?? value;
         resultIndex++;
       } else {
         translatedJson[key] = value; // 保持非字符串值不变
@@ -172,7 +185,7 @@ export class TranslationManager {
     const outputPath = jsonPath.replace(/\.json$/, `.${to}.json`);
     await writeJson(outputPath, translatedJson, true);
 
-    const successCount = results.filter(r => r.translatedText !== r.originalText).length;
+    const successCount = results.filter((r) => r.translatedText !== r.originalText).length;
 
     Logger.info(`✅ 翻译完成，结果保存到: ${outputPath}`);
     Logger.info(`📊 成功翻译: ${successCount}/${texts.length}`);
@@ -180,7 +193,7 @@ export class TranslationManager {
     return {
       outputPath,
       totalCount: texts.length,
-      successCount
+      successCount,
     };
   }
 
@@ -190,8 +203,8 @@ export class TranslationManager {
   async translateLanguageFiles(
     outputDir: string,
     sourceLocale: string,
-    from: string = this.config.defaultSourceLang || 'auto',
-    to: string = this.config.defaultTargetLang || 'en'
+    from: string = this.config.defaultSourceLang ?? 'auto',
+    to: string = this.config.defaultTargetLang ?? 'en'
   ): Promise<{ outputPath: string; totalCount: number; successCount: number }> {
     const sourcePath = path.join(outputDir, `${sourceLocale}.json`);
 
@@ -227,9 +240,9 @@ export class TranslationManager {
    * 获取可用的翻译服务提供者列表
    */
   getAvailableProviders(): string[] {
-    return Array.from(this.providers.keys()).filter(name => {
+    return Array.from(this.providers.keys()).filter((name) => {
       const provider = this.providers.get(name);
-      return provider?.isConfigured() || false;
+      return provider?.isConfigured() ?? false;
     });
   }
-} 
+}

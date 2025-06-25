@@ -24,7 +24,11 @@ export function writeFile(filePath: string, data: string | Buffer): Promise<void
  * @param data 文件内容
  * @param tempDir 临时目录，如果配置则写入到临时目录，否则写入原始位置
  */
-export function writeFileWithTempDir(filePath: string, data: string | Buffer, tempDir?: string): Promise<void> {
+export function writeFileWithTempDir(
+  filePath: string,
+  data: string | Buffer,
+  tempDir?: string
+): Promise<void> {
   let targetPath: string;
 
   if (tempDir) {
@@ -76,7 +80,7 @@ export function fileExists(filePath: string): boolean {
  * 同步读取 JSON 文件内容
  * @param filePath JSON 文件路径
  */
-export function readJsonSync(filePath: string): any {
+export function readJsonSync(filePath: string): unknown {
   const absPath = path.resolve(process.cwd(), filePath);
   return fs.readJsonSync(absPath);
 }
@@ -86,7 +90,7 @@ export function readJsonSync(filePath: string): any {
  * @param filePath JSON 文件路径
  * @param defaultValue 文件不存在时的默认值
  */
-export async function readJson<T = any>(filePath: string, defaultValue?: T): Promise<T> {
+export async function readJson<T = unknown>(filePath: string, defaultValue?: T): Promise<T> {
   try {
     const content = await readFile(filePath, 'utf-8');
     return JSON.parse(content) as T;
@@ -104,7 +108,7 @@ export async function readJson<T = any>(filePath: string, defaultValue?: T): Pro
  * @param data 要写入的数据
  * @param pretty 是否格式化输出，默认为 true
  */
-export async function writeJson(filePath: string, data: any, pretty: boolean = true): Promise<void> {
+export function writeJson(filePath: string, data: unknown, pretty: boolean = true): Promise<void> {
   const content = pretty ? JSON.stringify(data, null, 2) : JSON.stringify(data);
   return writeFile(filePath, content);
 }

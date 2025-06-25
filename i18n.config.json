@@ -1,0 +1,61 @@
+{
+  "locale": "zh-CN",
+  "fallbackLocale": "en-US",
+  "outputDir": "locales",
+  "tempDir": "test/temp",
+  "include": [
+    "test/**/*.{js,jsx,ts,tsx}"
+  ],
+  "exclude": [
+    "node_modules/**",
+    "dist/**",
+    "build/**",
+    "**/*.spec.{js,jsx,ts,tsx}"
+  ],
+  "keyGeneration": {
+    "maxChineseLength": 10,
+    "hashLength": 6,
+    "maxRetryCount": 5,
+    "duplicateKeyStrategy": "suffix",
+    "keyPrefix": "",
+    "separator": "_",
+    "pinyinOptions": {
+      "toneType": "none",
+      "type": "array"
+    }
+  },
+  "output": {
+    "prettyJson": true,
+    "localeFileName": "{locale}.json"
+  },
+  "logging": {
+    "enabled": true,
+    "level": "verbose"
+  },
+  "replacement": {
+    "functionName": "$t",
+    "autoImport": {
+      "enabled": true,
+      "insertPosition": "afterImports",
+      "imports": {
+        "test/demo/**/*.{js,jsx,ts,tsx}": {
+          "importStatement": "import { useTranslation } from 'react-i18next';\nconst { $t } = useTranslation();"
+        }
+      }
+    }
+  },
+  "translation": {
+    "enabled": false,
+    "provider": "baidu",
+    "defaultSourceLang": "zh",
+    "defaultTargetLang": "en",
+    "concurrency": 10,
+    "retryTimes": 3,
+    "retryDelay": 0,
+    "batchDelay": 0,
+    "baidu": {
+      "appid": "",
+      "key": ""
+    }
+  }
+}

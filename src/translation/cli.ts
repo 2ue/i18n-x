@@ -26,21 +26,27 @@ export async function translateCommand(options: TranslateOptions): Promise<void>
   // 初始化翻译管理器
   const translationManager = new TranslationManager({
     enabled: config.translation.enabled,
-    provider: config.translation.provider || 'baidu',
-    defaultSourceLang: config.translation.defaultSourceLang || 'zh',
-    defaultTargetLang: config.translation.defaultTargetLang || 'en',
-    concurrency: config.translation.concurrency || 10,
-    retryTimes: config.translation.retryTimes || 3,
-    retryDelay: config.translation.retryDelay || 0,
-    batchDelay: config.translation.batchDelay || 0,
-    baidu: config.translation.baidu?.appid && config.translation.baidu?.key ? {
-      appid: config.translation.baidu.appid,
-      key: config.translation.baidu.key
-    } : undefined,
-    custom: config.translation.custom?.endpoint && config.translation.custom?.apiKey ? {
-      endpoint: config.translation.custom.endpoint,
-      apiKey: config.translation.custom.apiKey
-    } : undefined
+    provider: config.translation.provider ?? 'baidu',
+    defaultSourceLang: config.translation.defaultSourceLang ?? 'zh',
+    defaultTargetLang: config.translation.defaultTargetLang ?? 'en',
+    concurrency: config.translation.concurrency ?? 10,
+    retryTimes: config.translation.retryTimes ?? 3,
+    retryDelay: config.translation.retryDelay ?? 0,
+    batchDelay: config.translation.batchDelay ?? 0,
+    baidu:
+      config.translation.baidu?.appid && config.translation.baidu?.key
+        ? {
+          appid: config.translation.baidu.appid,
+          key: config.translation.baidu.key,
+        }
+        : undefined,
+    custom:
+      config.translation.custom?.endpoint && config.translation.custom?.apiKey
+        ? {
+          endpoint: config.translation.custom.endpoint,
+          apiKey: config.translation.custom.apiKey,
+        }
+        : undefined,
   });
 
   if (!translationManager.isAvailable()) {
@@ -50,10 +56,10 @@ export async function translateCommand(options: TranslateOptions): Promise<void>
   }
 
   // 确定翻译方向
-  const defaultSourceLang = config.translation.defaultSourceLang || 'zh';
-  const defaultTargetLang = config.translation.defaultTargetLang || config.fallbackLocale || 'en';
-  const from = options.from || defaultSourceLang;
-  const to = options.to || defaultTargetLang;
+  const defaultSourceLang = config.translation.defaultSourceLang ?? 'zh';
+  const defaultTargetLang = config.translation.defaultTargetLang ?? config.fallbackLocale ?? 'en';
+  const from = options.from ?? defaultSourceLang;
+  const to = options.to ?? defaultTargetLang;
 
   try {
     // 根据不同的选项执行相应的翻译操作
@@ -69,7 +75,8 @@ export async function translateCommand(options: TranslateOptions): Promise<void>
       showUsageHelp();
     }
   } catch (error) {
-    console.error(`❌ 翻译失败: ${error}`);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error(`❌ 翻译失败: ${errorMessage}`);
     process.exit(1);
   }
 }
@@ -100,7 +107,11 @@ async function handleTranslateJsonFile(
   from: string,
   to: string
 ): Promise<void> {
-  const { outputPath, totalCount, successCount } = await manager.translateJsonFile(jsonPath, from, to);
+  const { outputPath, totalCount, successCount } = await manager.translateJsonFile(
+    jsonPath,
+    from,
+    to
+  );
   console.log(`✅ 翻译完成，结果保存到: ${outputPath}`);
   console.log(`📊 成功翻译: ${successCount}/${totalCount}`);
 }
@@ -114,8 +125,8 @@ async function handleTranslateBatchFiles(
   to: string
 ): Promise<void> {
   const config = ConfigManager.get();
-  const outputDir = config.outputDir || './locales';
-  const sourceLocale = config.locale || from;
+  const outputDir = config.outputDir ?? './locales';
+  const sourceLocale = config.locale ?? from;
 
   const { outputPath, totalCount, successCount } = await manager.translateLanguageFiles(
     outputDir,
@@ -145,7 +156,8 @@ async function handleTranslateInput(
       text = await readFile(input, 'utf-8');
       Logger.info(`从文件读取内容: ${input}`);
     } catch (error) {
-      throw new Error(`读取文件失败: ${error}`);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      throw new Error(`读取文件失败: ${errorMessage}`);
     }
   }
 
@@ -167,4 +179,4 @@ function showUsageHelp(): void {
   console.log('   使用 -j 指定JSON文件路径');
   console.log('   使用 --batch 批量翻译语言文件');
   console.log('   使用 --test -i "文本" 测试翻译');
-} 
+}

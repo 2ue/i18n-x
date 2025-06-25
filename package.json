@@ -79,6 +79,7 @@
     "@types/fs-extra": "^11.0.4",
     "@types/inquirer": "^9.0.8",
     "@types/lodash": "^4.17.18",
+    "@types/micromatch": "^4.0.9",
     "@types/node": "^24.0.3",
     "@types/string-hash": "^1.1.3",
     "@typescript-eslint/eslint-plugin": "^8.13.0",
@@ -101,6 +102,7 @@
     "fs-extra": "^11.3.0",
     "inquirer": "^12.6.3",
     "lodash": "^4.17.21",
+    "micromatch": "^4.0.8",
     "pinyin-pro": "^3.26.0",
     "string-hash": "^1.1.3"
   }

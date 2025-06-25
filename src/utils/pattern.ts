@@ -1,18 +1,17 @@
+import { Logger } from "./logger";
+import micromatch from 'micromatch';
+
 /**
- * 简单的glob模式匹配
- * 支持 * 和 ** 通配符
+ * 使用micromatch进行glob模式匹配
+ * 支持完整的glob语法，包括 *, **, {}, [], ! 等
  */
 export function matchPattern(pattern: string, filePath: string): boolean {
-  // 将glob模式转换为正则表达式
-  const regexPattern = pattern
-    .replace(/\./g, '\\.')  // 转义点号
-    .replace(/\*\*/g, '.*?')  // ** 匹配任意路径，包括空路径
-    .replace(/\*/g, '[^/]*')  // * 匹配除路径分隔符外的任意字符
-    .replace(/\{([^}]+)\}/g, '($1)')  // {js,ts} 转换为 (js|ts)
-    .replace(/,/g, '|');  // 逗号转换为或操作符
-
-  const regex = new RegExp(`^${regexPattern}$`);
-  return regex.test(filePath);
+  try {
+    return micromatch.isMatch(filePath, pattern);
+  } catch (error) {
+    Logger.warn(`模式匹配出错 - pattern: ${pattern}, filePath: ${filePath}, error: ${error}`);
+    return false;
+  }
 }
 
 /**
@@ -22,10 +21,51 @@ export function findMatchingImport(
   filePath: string,
   imports: { [pattern: string]: { importStatement: string } } = {}
 ): string | null {
-  for (const [pattern, config] of Object.entries(imports)) {
+  Logger.verbose(`findMatchingImport: ${filePath}`);
+
+  // 获取所有模式，按优先级排序（更具体的模式优先）
+  const patterns = Object.keys(imports).sort((a, b) => {
+    // 优先级：具体路径 > 带扩展名的模式 > 通用模式
+    const scoreA = getPatternSpecificity(a);
+    const scoreB = getPatternSpecificity(b);
+    return scoreB - scoreA;
+  });
+
+  for (const pattern of patterns) {
     if (matchPattern(pattern, filePath)) {
-      return config.importStatement;
+      Logger.verbose(`匹配到模式: ${pattern} -> ${filePath}`);
+      return imports[pattern]?.importStatement || null;
     }
   }
+
+  Logger.verbose(`未找到匹配的import配置: ${filePath}`);
   return null;
-} 
+}
+
+/**
+ * 计算模式的具体性分数（分数越高越具体）
+ */
+function getPatternSpecificity(pattern: string): number {
+  let score = 0;
+
+  // 没有通配符的路径分数更高
+  if (!pattern.includes('*')) {
+    score += 100;
+  }
+
+  // 有具体扩展名的分数更高
+  if (pattern.includes('.{') || pattern.match(/\.\w+$/)) {
+    score += 50;
+  }
+
+  // 路径层级越深分数越高
+  score += (pattern.match(/\//g)?.length || 0) * 10;
+
+  // ** 通配符降低分数
+  score -= (pattern.match(/\*\*/g)?.length || 0) * 20;
+
+  // * 通配符降低分数
+  score -= (pattern.match(/(?<!\*)\*(?!\*)/g)?.length || 0) * 5;
+
+  return score;
+}

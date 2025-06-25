@@ -24,8 +24,6 @@ function formatImportStatement(importStatement: string): string {
   return importStatement;
 }
 
-
-
 /**
  * 检查是否已经存在相同的import语句
  */
@@ -72,7 +70,11 @@ function hasExistingImport(ast: any, importStatement: string): boolean {
 /**
  * 在AST中添加import语句（支持不同插入位置）
  */
-function addImportToAST(ast: any, importStatement: string, insertPosition: 'top' | 'afterImports' = 'afterImports'): void {
+function addImportToAST(
+  ast: any,
+  importStatement: string,
+  insertPosition: 'top' | 'afterImports' = 'afterImports')
+  : void {
   try {
     // 检查是否已存在相同的import语句
     if (hasExistingImport(ast, importStatement)) {
@@ -209,10 +211,10 @@ export async function scanAndReplaceAll(): Promise<void> {
   Logger.info(`找到 ${files.length} 个文件需要处理`);
 
   // 获取替换配置
-  const functionName = config.replacement?.functionName || '$t';
-  const autoImportEnabled = config.replacement?.autoImport?.enabled || false;
-  const insertPosition = config.replacement?.autoImport?.insertPosition || 'afterImports';
-  const imports = config.replacement?.autoImport?.imports || {};
+  const functionName = config.replacement?.functionName ?? '$t';
+  const autoImportEnabled = config.replacement?.autoImport?.enabled ?? false;
+  const insertPosition = config.replacement?.autoImport?.insertPosition ?? 'afterImports';
+  const imports = config.replacement?.autoImport?.imports ?? {};
 
   for (const file of files) {
     Logger.verbose(`正在处理文件: ${file}`);
@@ -236,8 +238,10 @@ export async function scanAndReplaceAll(): Promise<void> {
 
     // 按需插入import的辅助函数
     const ensureImportInserted = () => {
+      Logger.info(`hasImportInserted: ${hasImportInserted}, ${autoImportEnabled}, ${hasReplacement}`);
       if (!hasImportInserted && autoImportEnabled && hasReplacement) {
         const importStatement = findMatchingImport(file, imports);
+        Logger.info(`importStatement: ${importStatement}`);
         if (importStatement) {
           Logger.verbose(`为文件 ${file} 添加import语句`);
           addImportToAST(ast, importStatement, insertPosition);
@@ -280,7 +284,7 @@ export async function scanAndReplaceAll(): Promise<void> {
           for (const part of parts) {
             if (/^[\u4e00-\u9fa5]+$/.test(part)) {
               const key = createI18nKey(part, file);
-              result += "${" + functionName + "('" + key + "')}";
+              result += '${' + functionName + "('" + key + "')}";
             } else {
               result += part;
             }
@@ -294,7 +298,9 @@ export async function scanAndReplaceAll(): Promise<void> {
         if (CHINESE_RE.test(path.node.value)) {
           const key = createI18nKey(path.node.value.trim(), file);
           path.replaceWith(
-            t.jsxExpressionContainer(t.callExpression(t.identifier(functionName), [t.stringLiteral(key)]))
+            t.jsxExpressionContainer(
+              t.callExpression(t.identifier(functionName), [t.stringLiteral(key)])
+            )
           );
           hasReplacement = true;
         }
@@ -308,11 +314,18 @@ export async function scanAndReplaceAll(): Promise<void> {
           hasReplacement = true;
         }
       },
-      // 遍历结束时检查是否需要插入import
-      exit() {
-        ensureImportInserted();
-      }
+      // 在Program节点遍历结束时检查是否需要插入import
+      // Program: {
+      //   exit() {
+      //     Logger.verbose('遍历结束，检查是否需要插入import');
+      //     ensureImportInserted();
+      //   }
+      // }
     });
+
+
+    Logger.verbose(`遍历结束，检查是否需要插入import11: ${file},  ${hasReplacement}`);
+    ensureImportInserted();
 
     // 只有在发生替换时才输出文件
     if (hasReplacement) {

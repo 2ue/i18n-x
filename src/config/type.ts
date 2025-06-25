@@ -17,7 +17,8 @@ export interface I18nConfig {
     duplicateKeyStrategy?: 'reuse' | 'suffix' | 'context' | 'error' | 'warning'; // 重复key处理策略，默认 'reuse'
     keyPrefix?: string; // key前缀，可选
     separator?: string; // 连接符，默认 '_'
-    pinyinOptions?: {// 拼音转换选项
+    pinyinOptions?: {
+      // 拼音转换选项
       toneType?: 'none' | 'symbol' | 'num';
       type?: 'string' | 'array';
     };

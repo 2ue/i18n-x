@@ -1,6 +1,6 @@
 import { Command } from 'commander';
 // 处理CommonJS兼容性
-const inquirer = require('inquirer').default || require('inquirer');
+const inquirer = require('inquirer').default ?? require('inquirer');
 import { loadConfig, ConfigManager } from './config';
 import { scanAndReplaceAll } from './ast';
 import { writeJson } from './utils/fs';

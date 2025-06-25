@@ -1,5 +1,6 @@
 import { TranslationProvider, TranslationResult } from '../index';
 import { Logger } from '../../utils/logger';
+import baiduTranslateService from 'baidu-translate-service';
 
 interface BaiduTranslateConfig {
   appid: string;
@@ -25,21 +26,22 @@ export class BaiduTranslationProvider implements TranslationProvider {
     this.config = config;
   }
 
-  async translate(text: string, from: string = 'auto', to: string = 'en'): Promise<TranslationResult> {
+  async translate(
+    text: string,
+    from: string = 'auto',
+    to: string = 'en'
+  ): Promise<TranslationResult> {
     if (!this.isConfigured()) {
       throw new Error('百度翻译服务未配置，请设置 appid 和 key');
     }
 
     try {
-      // 动态导入，避免在未使用时加载
-      const baiduTranslateService = require('baidu-translate-service');
-
       const response: BaiduTranslateResponse = await baiduTranslateService({
         appid: this.config.appid,
         key: this.config.key,
         q: text,
         from: this.mapLanguageCode(from),
-        to: this.mapLanguageCode(to)
+        to: this.mapLanguageCode(to),
       });
 
       if (response.error_code) {
@@ -50,7 +52,7 @@ export class BaiduTranslationProvider implements TranslationProvider {
         throw new Error('翻译结果为空');
       }
 
-      const translatedText = response.trans_result.map(item => item.dst).join('\n');
+      const translatedText = response.trans_result.map((item) => item.dst).join('\n');
 
       Logger.verbose(`翻译成功: "${text}" -> "${translatedText}"`);
 
@@ -59,10 +61,11 @@ export class BaiduTranslationProvider implements TranslationProvider {
         translatedText,
         sourceLanguage: response.from,
         targetLanguage: response.to,
-        provider: this.name
+        provider: this.name,
       };
     } catch (error) {
-      Logger.error(`百度翻译失败: ${error}`);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      Logger.error(`百度翻译失败: ${errorMessage}`);
       throw error;
     }
   }
@@ -73,9 +76,35 @@ export class BaiduTranslationProvider implements TranslationProvider {
 
   getSupportedLanguages(): string[] {
     return [
-      'auto', 'zh', 'en', 'yue', 'wyw', 'jp', 'kor', 'fra', 'spa', 'th',
-      'ara', 'ru', 'pt', 'de', 'it', 'el', 'nl', 'pl', 'bul', 'est',
-      'dan', 'fin', 'cs', 'rom', 'slo', 'swe', 'hu', 'cht', 'vie'
+      'auto',
+      'zh',
+      'en',
+      'yue',
+      'wyw',
+      'jp',
+      'kor',
+      'fra',
+      'spa',
+      'th',
+      'ara',
+      'ru',
+      'pt',
+      'de',
+      'it',
+      'el',
+      'nl',
+      'pl',
+      'bul',
+      'est',
+      'dan',
+      'fin',
+      'cs',
+      'rom',
+      'slo',
+      'swe',
+      'hu',
+      'cht',
+      'vie',
     ];
   }
 
@@ -87,21 +116,21 @@ export class BaiduTranslationProvider implements TranslationProvider {
       'zh-CN': 'zh',
       'zh-TW': 'cht',
       'en-US': 'en',
-      'ja': 'jp',
-      'ko': 'kor',
-      'fr': 'fra',
-      'es': 'spa',
-      'ar': 'ara',
-      'ru': 'ru',
-      'pt': 'pt',
-      'de': 'de',
-      'it': 'it',
-      'nl': 'nl',
-      'pl': 'pl',
-      'sv': 'swe',
-      'vi': 'vie'
+      ja: 'jp',
+      ko: 'kor',
+      fr: 'fra',
+      es: 'spa',
+      ar: 'ara',
+      ru: 'ru',
+      pt: 'pt',
+      de: 'de',
+      it: 'it',
+      nl: 'nl',
+      pl: 'pl',
+      sv: 'swe',
+      vi: 'vie',
     };
 
-    return langMap[lang] || lang;
+    return langMap[lang] ?? lang;
   }
-} 
+}

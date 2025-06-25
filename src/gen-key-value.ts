@@ -16,7 +16,7 @@ let outputFilePath = '';
 // 初始化缓存和文件
 export async function initI18nCache(): Promise<void> {
   const config = ConfigManager.get();
-  const outputDir = config.outputDir || 'locales';
+  const outputDir = config.outputDir ?? 'locales';
   await ensureDir(outputDir);
   outputFilePath = path.join(outputDir, 'zh-CN.json');
 
@@ -34,7 +34,7 @@ export async function initI18nCache(): Promise<void> {
 
 function toShortHash(text: string): string {
   const config = ConfigManager.get();
-  const hashLength = config.keyGeneration?.hashLength || 6;
+  const hashLength = config.keyGeneration?.hashLength ?? 6;
   return stringHash(text).toString(36).slice(0, hashLength);
 }
 
@@ -43,7 +43,7 @@ function toShortHash(text: string): string {
  */
 function handleDuplicateKey(baseKey: string, text: string, filePath?: string): string {
   const config = ConfigManager.get();
-  const strategy = config.keyGeneration?.duplicateKeyStrategy || 'reuse';
+  const strategy = config.keyGeneration?.duplicateKeyStrategy ?? 'reuse';
 
   switch (strategy) {
     case 'reuse':
@@ -57,44 +57,51 @@ function handleDuplicateKey(baseKey: string, text: string, filePath?: string): s
       }
       return baseKey;
 
-    case 'suffix':
+    case 'suffix': {
       // 添加hash后缀（当前行为）
       if (!keyValueCache[baseKey]) {
         return baseKey;
       }
-      const separator = config.keyGeneration?.separator || '_';
+      const separator = config.keyGeneration?.separator ?? '_';
       let finalKey = baseKey + separator + toShortHash(text);
       let tryCount = 0;
-      const maxRetry = config.keyGeneration?.maxRetryCount || 5;
+      const maxRetry = config.keyGeneration?.maxRetryCount ?? 5;
 
       while (keyValueCache[finalKey] && tryCount < maxRetry) {
         finalKey = baseKey + separator + toShortHash(text + Math.random().toString());
         tryCount++;
       }
       return finalKey;
+    }
 
-    case 'context':
+    case 'context': {
       // 根据文件路径生成前缀
       if (!keyValueCache[baseKey]) {
         return baseKey;
       }
-      const contextSeparator = config.keyGeneration?.separator || '_';
+      const contextSeparator = config.keyGeneration?.separator ?? '_';
       if (filePath) {
         const fileName = path.basename(filePath, path.extname(filePath));
         const contextKey = `${fileName}${contextSeparator}${baseKey}`;
-        return keyValueCache[contextKey] ? contextKey + contextSeparator + toShortHash(text) : contextKey;
+        return keyValueCache[contextKey] ?
+          contextKey + contextSeparator + toShortHash(text) :
+          contextKey;
       }
       return baseKey + contextSeparator + toShortHash(text);
+    }
 
-    case 'error':
+    case 'error': {
       // 遇到重复时报错
       if (keyValueCache[baseKey] && keyValueCache[baseKey] !== text) {
-        throw new Error(`Duplicate key "${baseKey}" found with different content:\n` +
+        throw new Error(
+          `Duplicate key "${baseKey}" found with different content:\n` +
           `  Existing: "${keyValueCache[baseKey]}"\n` +
           `  New: "${text}"\n` +
-          `  File: ${filePath || 'unknown'}`);
+          `  File: ${filePath ?? 'unknown'}`
+        );
       }
       return baseKey;
+    }
 
     case 'warning':
       // 显示警告但重复使用key
@@ -116,7 +123,7 @@ export function createI18nKey(text: string, filePath?: string): string {
   const config = ConfigManager.get();
 
   // 提取所有汉字，截取前N个
-  const maxLength = config.keyGeneration?.maxChineseLength || 10;
+  const maxLength = config.keyGeneration?.maxChineseLength ?? 10;
   const han = (text.match(/[\u4e00-\u9fa5]+/g)?.join('') ?? '').slice(0, maxLength);
 
   if (!han) {
@@ -124,15 +131,17 @@ export function createI18nKey(text: string, filePath?: string): string {
   }
 
   // 获取配置
-  const pinyinOptions = config.keyGeneration?.pinyinOptions || { toneType: 'none', type: 'array' };
-  const separator = config.keyGeneration?.separator || '_';
-  const keyPrefix = config.keyGeneration?.keyPrefix || '';
+  const pinyinOptions = config.keyGeneration?.pinyinOptions ?? { toneType: 'none', type: 'array' };
+  const separator = config.keyGeneration?.separator ?? '_';
+  const keyPrefix = config.keyGeneration?.keyPrefix ?? '';
 
   // 生成基础key
-  const baseKey = (pinyin(han, {
-    toneType: pinyinOptions.toneType || 'none',
-    type: 'array'
-  }) ?? []).join(separator);
+  const baseKey = (
+    pinyin(han, {
+      toneType: pinyinOptions.toneType ?? 'none',
+      type: 'array'
+    }) ?? []).
+    join(separator);
 
   if (!baseKey) {
     return '';

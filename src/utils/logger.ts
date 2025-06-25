@@ -1,58 +1,55 @@
 import { ConfigManager } from '../config';
 
-type LogLevel = 'minimal' | 'normal' | 'verbose';
-
 export class Logger {
-  private static getConfig() {
-    return ConfigManager.get();
-  }
-
-  static isEnabled(): boolean {
-    return this.getConfig().logging?.enabled !== false;
-  }
-
-  static getLevel(): LogLevel {
-    return this.getConfig().logging?.level || 'normal';
-  }
-
-  static info(message: string, level: LogLevel = 'normal'): void {
-    if (!this.isEnabled() || !this.shouldLog(level)) {
-      return;
+  private static getLogLevel(): string {
+    try {
+      const config = ConfigManager.get();
+      return config.logging?.level ?? 'normal';
+    } catch {
+      // 如果ConfigManager未初始化，使用默认值
+      return 'normal';
     }
-    console.log(`ℹ️  ${message}`);
   }
 
-  static success(message: string, level: LogLevel = 'normal'): void {
-    if (!this.isEnabled() || !this.shouldLog(level)) {
-      return;
+  private static shouldLog(level: 'minimal' | 'normal' | 'verbose'): boolean {
+    const currentLevel = this.getLogLevel();
+
+    if (currentLevel === 'minimal') {
+      return level === 'minimal';
+    } else if (currentLevel === 'normal') {
+      return level !== 'verbose';
+    } else if (currentLevel === 'verbose') {
+      return true;
     }
-    console.log(`✅ ${message}`);
+
+    return false;
   }
 
-  static warn(message: string, level: LogLevel = 'minimal'): void {
-    if (!this.isEnabled() || !this.shouldLog(level)) {
-      return;
+  static success(message: string, level: 'minimal' | 'normal' | 'verbose' = 'normal'): void {
+    if (this.shouldLog(level)) {
+      console.log(`✅ ${message}`);
     }
-    console.warn(`⚠️  ${message}`);
   }
 
-  static error(message: string, level: LogLevel = 'minimal'): void {
-    if (!this.isEnabled() || !this.shouldLog(level)) {
-      return;
+  static info(message: string, level: 'minimal' | 'normal' | 'verbose' = 'normal'): void {
+    if (this.shouldLog(level)) {
+      console.log(`ℹ️  ${message}`);
     }
-    console.error(`❌ ${message}`);
+  }
+
+  static warn(message: string, level: 'minimal' | 'normal' | 'verbose' = 'normal'): void {
+    if (this.shouldLog(level)) {
+      console.warn(`⚠️  ${message}`);
+    }
+  }
+
+  static error(message: string, level: 'minimal' | 'normal' | 'verbose' = 'normal'): void {
+    if (this.shouldLog(level)) {
+      console.error(`❌ ${message}`);
+    }
   }
 
   static verbose(message: string): void {
     this.info(message, 'verbose');
   }
-
-  private static shouldLog(messageLevel: LogLevel): boolean {
-    const currentLevel = this.getLevel();
-    const levels = ['minimal', 'normal', 'verbose'];
-    const currentLevelIndex = levels.indexOf(currentLevel);
-    const messageLevelIndex = levels.indexOf(messageLevel);
-
-    return messageLevelIndex <= currentLevelIndex;
-  }
-} 
+}
