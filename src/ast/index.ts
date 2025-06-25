@@ -204,11 +204,28 @@ function isInTypePosition(path: any): boolean {
 
 export async function scanAndReplaceAll(): Promise<void> {
   const config = ConfigManager.get();
-  Logger.info('开始初始化i18n缓存...');
+
+  Logger.info('开始扫描和替换中文字符串...', 'normal');
+  Logger.verbose(`配置信息: 
+    - include: ${JSON.stringify(config.include)}
+    - exclude: ${JSON.stringify(config.exclude)}
+    - outputDir: ${config.outputDir}
+    - locale: ${config.locale}
+    - tempDir: ${config.tempDir || '无'}`);
+
+  Logger.info('初始化i18n缓存...', 'verbose');
   await initI18nCache();
 
+  Logger.info('搜索目标文件...', 'verbose');
   const files = await findTargetFiles(config.include, config.exclude);
-  Logger.info(`找到 ${files.length} 个文件需要处理`);
+
+  if (files.length === 0) {
+    Logger.warn('没有找到匹配的文件', 'normal');
+    return;
+  }
+
+  Logger.info(`找到 ${files.length} 个文件需要处理`, 'normal');
+  Logger.verbose(`文件列表: ${files.join(', ')}`);
 
   // 获取替换配置
   const functionName = config.replacement?.functionName ?? '$t';
@@ -216,7 +233,19 @@ export async function scanAndReplaceAll(): Promise<void> {
   const insertPosition = config.replacement?.autoImport?.insertPosition ?? 'afterImports';
   const imports = config.replacement?.autoImport?.imports ?? {};
 
+  Logger.verbose(`替换配置:
+    - 函数名: ${functionName}
+    - 自动导入: ${autoImportEnabled ? '启用' : '禁用'}
+    - 插入位置: ${insertPosition}`);
+
+  // 统计变量
+  let processedCount = 0;
+  let modifiedCount = 0;
+  let totalReplacements = 0;
+
   for (const file of files) {
+    processedCount++;
+    Logger.info(`[${processedCount}/${files.length}] 处理文件: ${file}`, 'verbose');
     Logger.verbose(`正在处理文件: ${file}`);
     const code = await readFile(file, 'utf-8');
 
@@ -235,17 +264,18 @@ export async function scanAndReplaceAll(): Promise<void> {
     // 跟踪是否已经插入import和是否发生了替换
     let hasImportInserted = false;
     let hasReplacement = false;
+    let fileReplacements = 0;
 
     // 按需插入import的辅助函数
     const ensureImportInserted = () => {
-      Logger.info(`hasImportInserted: ${hasImportInserted}, ${autoImportEnabled}, ${hasReplacement}`);
       if (!hasImportInserted && autoImportEnabled && hasReplacement) {
         const importStatement = findMatchingImport(file, imports);
-        Logger.info(`importStatement: ${importStatement}`);
         if (importStatement) {
-          Logger.verbose(`为文件 ${file} 添加import语句`);
+          Logger.verbose(`为文件 ${file} 添加import语句: ${importStatement.trim()}`);
           addImportToAST(ast, importStatement, insertPosition);
           hasImportInserted = true;
+        } else {
+          Logger.warn(`文件 ${file} 需要import语句但未找到匹配的import配置`, 'normal');
         }
       }
     };
@@ -261,6 +291,8 @@ export async function scanAndReplaceAll(): Promise<void> {
           const key = createI18nKey(path.node.value);
           path.replaceWith(t.callExpression(t.identifier(functionName), [t.stringLiteral(key)]));
           hasReplacement = true;
+          fileReplacements++;
+          Logger.verbose(`替换字符串: "${path.node.value}" -> ${functionName}("${key}")`);
         }
       },
       TemplateElement(path: any) {
@@ -292,6 +324,8 @@ export async function scanAndReplaceAll(): Promise<void> {
           path.node.value.raw = result;
           path.node.value.cooked = result;
           hasReplacement = true;
+          fileReplacements++;
+          Logger.verbose(`替换模板字符串中的中文片段`);
         }
       },
       JSXText(path: any) {
@@ -303,6 +337,8 @@ export async function scanAndReplaceAll(): Promise<void> {
             )
           );
           hasReplacement = true;
+          fileReplacements++;
+          Logger.verbose(`替换JSX文本: "${path.node.value.trim()}" -> {${functionName}("${key}")}`);
         }
       },
       JSXAttribute(path: any) {
@@ -312,6 +348,8 @@ export async function scanAndReplaceAll(): Promise<void> {
             t.callExpression(t.identifier(functionName), [t.stringLiteral(key)])
           );
           hasReplacement = true;
+          fileReplacements++;
+          Logger.verbose(`替换JSX属性: "${path.node.value.value}" -> {${functionName}("${key}")}`);
         }
       },
       // 在Program节点遍历结束时检查是否需要插入import
@@ -324,17 +362,37 @@ export async function scanAndReplaceAll(): Promise<void> {
     });
 
 
-    Logger.verbose(`遍历结束，检查是否需要插入import11: ${file},  ${hasReplacement}`);
     ensureImportInserted();
 
     // 只有在发生替换时才输出文件
     if (hasReplacement) {
       const output = generate(ast, { retainLines: true }, code).code;
       await writeFileWithTempDir(file, output, config.tempDir);
+      modifiedCount++;
+      totalReplacements += fileReplacements;
+      Logger.info(`文件 ${file} 处理完成，替换了 ${fileReplacements} 个中文字符串`, 'normal');
+      if (config.tempDir) {
+        Logger.verbose(`修改后的文件保存到: ${config.tempDir}/${file}`);
+      }
+    } else {
+      Logger.verbose(`文件 ${file} 无需修改`);
     }
     await flushI18nCache();
   }
 
-  Logger.success(`文件处理完成，共处理 ${files.length} 个文件`);
-  Logger.info('国际化文件已更新');
+  // 输出最终统计结果
+  Logger.success(`扫描和替换完成！`, 'minimal');
+  Logger.info(`统计信息:`, 'normal');
+  Logger.info(`  - 处理文件总数: ${processedCount}`, 'normal');
+  Logger.info(`  - 修改文件数量: ${modifiedCount}`, 'normal');
+  Logger.info(`  - 替换字符串总数: ${totalReplacements}`, 'normal');
+
+  if (modifiedCount > 0) {
+    Logger.info(`国际化处理完成，共有 ${modifiedCount} 个文件被修改`, 'normal');
+    if (config.tempDir) {
+      Logger.info(`修改后的文件保存在临时目录: ${config.tempDir}`, 'normal');
+    }
+  } else {
+    Logger.info('没有文件需要修改', 'normal');
+  }
 }

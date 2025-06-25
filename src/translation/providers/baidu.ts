@@ -24,6 +24,7 @@ export class BaiduTranslationProvider implements TranslationProvider {
 
   constructor(config: BaiduTranslateConfig) {
     this.config = config;
+    Logger.verbose(`百度翻译提供者初始化完成，appid: ${config.appid ? '已配置' : '未配置'}`);
   }
 
   async translate(
@@ -36,12 +37,16 @@ export class BaiduTranslationProvider implements TranslationProvider {
     }
 
     try {
+      const mappedFrom = this.mapLanguageCode(from);
+      const mappedTo = this.mapLanguageCode(to);
+      Logger.verbose(`发起百度翻译请求: ${mappedFrom} -> ${mappedTo}, 文本长度: ${text.length}`);
+
       const response: BaiduTranslateResponse = await baiduTranslateService({
         appid: this.config.appid,
         key: this.config.key,
         q: text,
-        from: this.mapLanguageCode(from),
-        to: this.mapLanguageCode(to),
+        from: mappedFrom,
+        to: mappedTo,
       });
 
       if (response.error_code) {

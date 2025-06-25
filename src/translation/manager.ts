@@ -11,6 +11,7 @@ export class TranslationManager {
 
   constructor(config: TranslationConfig) {
     this.config = config;
+    Logger.verbose(`初始化翻译管理器，提供者: ${config.provider}，并发数: ${config.concurrency}`);
     this.initializeProviders();
   }
 
@@ -84,8 +85,9 @@ export class TranslationManager {
     const retryDelay = this.config.retryDelay ?? 0;
 
     Logger.info(
-      `开始批量翻译，文本数量: ${texts.length}，并发数: ${concurrency}，重试次数: ${retryTimes}`
+      `开始批量翻译，文本数量: ${texts.length}，并发数: ${concurrency}，重试次数: ${retryTimes}`, 'normal'
     );
+    Logger.verbose(`翻译方向: ${from} -> ${to}`);
 
     // 创建翻译队列
     const queue = new TranslationQueue(concurrency);

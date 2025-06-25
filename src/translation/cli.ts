@@ -19,7 +19,7 @@ export async function translateCommand(options: TranslateOptions): Promise<void>
   ConfigManager.init(config);
 
   if (!config.translation?.enabled) {
-    console.log('💡 翻译功能未启用，请在配置文件中设置 translation.enabled = true');
+    Logger.info('翻译功能未启用，请在配置文件中设置 translation.enabled = true', 'normal');
     return;
   }
 
@@ -50,8 +50,8 @@ export async function translateCommand(options: TranslateOptions): Promise<void>
   });
 
   if (!translationManager.isAvailable()) {
-    console.error('❌ 翻译服务不可用，请检查配置');
-    console.log('💡 百度翻译需要配置 appid 和 key');
+    Logger.error('翻译服务不可用，请检查配置', 'minimal');
+    Logger.info('百度翻译需要配置 appid 和 key', 'normal');
     return;
   }
 
@@ -76,7 +76,7 @@ export async function translateCommand(options: TranslateOptions): Promise<void>
     }
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    console.error(`❌ 翻译失败: ${errorMessage}`);
+    Logger.error(`翻译失败: ${errorMessage}`, 'minimal');
     process.exit(1);
   }
 }
@@ -90,12 +90,12 @@ async function handleTranslateTest(
   from: string,
   to: string
 ): Promise<void> {
-  console.log(`🧪 测试翻译模式 (${from} -> ${to})`);
-  console.log(`原文: ${text}`);
+  Logger.info(`测试翻译模式 (${from} -> ${to})`, 'normal');
+  Logger.info(`原文: ${text}`, 'normal');
 
   const result = await manager.translate(text, from, to);
-  console.log(`✅ 译文: ${result.translatedText}`);
-  console.log(`📊 提供者: ${result.provider}`);
+  Logger.success(`译文: ${result.translatedText}`, 'normal');
+  Logger.info(`提供者: ${result.provider}`, 'normal');
 }
 
 /**
@@ -112,8 +112,8 @@ async function handleTranslateJsonFile(
     from,
     to
   );
-  console.log(`✅ 翻译完成，结果保存到: ${outputPath}`);
-  console.log(`📊 成功翻译: ${successCount}/${totalCount}`);
+  Logger.success(`翻译完成，结果保存到: ${outputPath}`, 'normal');
+  Logger.info(`成功翻译: ${successCount}/${totalCount}`, 'normal');
 }
 
 /**
@@ -135,8 +135,8 @@ async function handleTranslateBatchFiles(
     to
   );
 
-  console.log(`✅ 批量翻译完成，结果保存到: ${outputPath}`);
-  console.log(`📊 成功翻译: ${successCount}/${totalCount}`);
+  Logger.success(`批量翻译完成，结果保存到: ${outputPath}`, 'normal');
+  Logger.info(`成功翻译: ${successCount}/${totalCount}`, 'normal');
 }
 
 /**
@@ -161,22 +161,22 @@ async function handleTranslateInput(
     }
   }
 
-  console.log(`🔄 正在翻译 (${from} -> ${to})...`);
+  Logger.info(`正在翻译 (${from} -> ${to})...`, 'normal');
   const result = await manager.translate(text, from, to);
 
-  console.log('\n📝 翻译结果:');
-  console.log(`原文 (${result.sourceLanguage}): ${result.originalText}`);
-  console.log(`译文 (${result.targetLanguage}): ${result.translatedText}`);
-  console.log(`提供者: ${result.provider}`);
+  Logger.info('翻译结果:', 'normal');
+  Logger.info(`原文 (${result.sourceLanguage}): ${result.originalText}`, 'normal');
+  Logger.success(`译文 (${result.targetLanguage}): ${result.translatedText}`, 'normal');
+  Logger.info(`提供者: ${result.provider}`, 'verbose');
 }
 
 /**
  * 显示使用帮助
  */
 function showUsageHelp(): void {
-  console.error('❌ 请指定翻译内容：');
-  console.log('   使用 -i 指定文本或文件路径');
-  console.log('   使用 -j 指定JSON文件路径');
-  console.log('   使用 --batch 批量翻译语言文件');
-  console.log('   使用 --test -i "文本" 测试翻译');
+  Logger.error('请指定翻译内容：', 'minimal');
+  Logger.info('   使用 -i 指定文本或文件路径', 'normal');
+  Logger.info('   使用 -j 指定JSON文件路径', 'normal');
+  Logger.info('   使用 --batch 批量翻译语言文件', 'normal');
+  Logger.info('   使用 --test -i "文本" 测试翻译', 'normal');
 }

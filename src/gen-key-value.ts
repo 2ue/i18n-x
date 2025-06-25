@@ -23,7 +23,11 @@ export async function initI18nCache(): Promise<void> {
   const config = ConfigManager.get();
   const outputDir = config.outputDir ?? 'locales';
   await ensureDir(outputDir);
-  outputFilePath = path.join(outputDir, 'zh-CN.json');
+
+  // 使用配置中的locale和文件名模式，而不是硬编码
+  const localeFileName = config.output?.localeFileName ?? '{locale}.json';
+  const fileName = localeFileName.replace('{locale}', config.locale ?? 'zh-CN');
+  outputFilePath = path.join(outputDir, fileName);
 
   // 使用新的 readJson 函数，带默认值
   keyValueCache = await readJson<KeyValueMap>(outputFilePath, {});
@@ -133,9 +137,9 @@ export function createI18nKey(text: string): string {
 export async function flushI18nCache(): Promise<void> {
   if (outputFilePath) {
     const config = ConfigManager.get();
-    const prettyJson = config.output?.prettyJson !== false;
+    const prettyJson = config.output?.prettyJson ?? true;
     await writeJson(outputFilePath, keyValueCache, prettyJson);
     const keyCount = Object.keys(keyValueCache).length;
-    Logger.verbose(`已保存 ${keyCount} 个翻译键到 ${outputFilePath}`);
+    Logger.info(`已保存 ${keyCount} 个翻译键到 ${outputFilePath}`, 'normal');
   }
 }
