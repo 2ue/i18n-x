@@ -127,7 +127,10 @@ function addEmptyLineAfterImport(code: string, importStatement: string): string 
   const charAfterImport = code.charAt(importEndIndex);
   if (charAfterImport && charAfterImport !== '\n' && charAfterImport !== '\r') {
     // import语句后直接跟着其他代码，需要先添加换行，再添加空行
-    return code.substring(0, importEndIndex) + '\n\n' + code.substring(importEndIndex);
+    // 同时去掉后续代码开头可能的空格，避免多余的缩进
+    const restCode = code.substring(importEndIndex);
+    const trimmedRestCode = restCode.replace(/^[ \t]*/, ''); // 移除开头的空格和制表符
+    return code.substring(0, importEndIndex) + '\n\n' + trimmedRestCode;
   }
 
   // 找到import语句行的实际结束位置（换行符位置）
