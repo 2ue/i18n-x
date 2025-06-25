@@ -287,12 +287,13 @@ export async function scanAndReplaceAll(): Promise<void> {
           return;
         }
 
-        if (CHINESE_RE.test(path.node.value)) {
-          const key = createI18nKey(path.node.value);
+        const stringValue = path.node.value;
+        if (stringValue && typeof stringValue === 'string' && CHINESE_RE.test(stringValue)) {
+          const key = createI18nKey(stringValue);
           path.replaceWith(t.callExpression(t.identifier(functionName), [t.stringLiteral(key)]));
           hasReplacement = true;
           fileReplacements++;
-          Logger.verbose(`替换字符串: "${path.node.value}" -> ${functionName}("${key}")`);
+          Logger.verbose(`替换字符串: "${stringValue}" -> ${functionName}("${key}")`);
         }
       },
       TemplateElement(path: any) {
@@ -301,8 +302,8 @@ export async function scanAndReplaceAll(): Promise<void> {
           return;
         }
 
-        const raw = path.node.value.raw;
-        if (CHINESE_RE.test(raw)) {
+        const raw = path.node.value?.raw;
+        if (raw && typeof raw === 'string' && CHINESE_RE.test(raw)) {
           // 替换所有中文片段为${$t('key')}，保留非中文和插值
           const SEPARATOR = '\u{1F4D6}'; // 使用书本emoji作为分隔符，避免控制字符问题
           const replaced = raw.replace(
@@ -329,27 +330,33 @@ export async function scanAndReplaceAll(): Promise<void> {
         }
       },
       JSXText(path: any) {
-        if (CHINESE_RE.test(path.node.value)) {
-          const key = createI18nKey(path.node.value.trim());
-          path.replaceWith(
-            t.jsxExpressionContainer(
-              t.callExpression(t.identifier(functionName), [t.stringLiteral(key)])
-            )
-          );
-          hasReplacement = true;
-          fileReplacements++;
-          Logger.verbose(`替换JSX文本: "${path.node.value.trim()}" -> {${functionName}("${key}")}`);
+        const textValue = path.node.value;
+        if (textValue && typeof textValue === 'string' && CHINESE_RE.test(textValue)) {
+          const trimmedValue = textValue.trim();
+          if (trimmedValue) {  // 确保trim后不是空字符串
+            const key = createI18nKey(trimmedValue);
+            path.replaceWith(
+              t.jsxExpressionContainer(
+                t.callExpression(t.identifier(functionName), [t.stringLiteral(key)])
+              )
+            );
+            hasReplacement = true;
+            fileReplacements++;
+            Logger.verbose(`替换JSX文本: "${trimmedValue}" -> {${functionName}("${key}")}`);
+          }
         }
       },
       JSXAttribute(path: any) {
-        if (t.isStringLiteral(path.node.value) && CHINESE_RE.test(path.node.value.value)) {
-          const key = createI18nKey(path.node.value.value);
+        if (t.isStringLiteral(path.node.value) && path.node.value.value &&
+          typeof path.node.value.value === 'string' && CHINESE_RE.test(path.node.value.value)) {
+          const attributeValue = path.node.value.value;
+          const key = createI18nKey(attributeValue);
           path.node.value = t.jsxExpressionContainer(
             t.callExpression(t.identifier(functionName), [t.stringLiteral(key)])
           );
           hasReplacement = true;
           fileReplacements++;
-          Logger.verbose(`替换JSX属性: "${path.node.value.value}" -> {${functionName}("${key}")}`);
+          Logger.verbose(`替换JSX属性: "${attributeValue}" -> {${functionName}("${key}")}`);
         }
       },
       // 在Program节点遍历结束时检查是否需要插入import
