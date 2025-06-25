@@ -258,7 +258,7 @@ export async function scanAndReplaceAll(): Promise<void> {
         }
 
         if (CHINESE_RE.test(path.node.value)) {
-          const key = createI18nKey(path.node.value, file);
+          const key = createI18nKey(path.node.value);
           path.replaceWith(t.callExpression(t.identifier(functionName), [t.stringLiteral(key)]));
           hasReplacement = true;
         }
@@ -283,7 +283,7 @@ export async function scanAndReplaceAll(): Promise<void> {
           let result = '';
           for (const part of parts) {
             if (/^[\u4e00-\u9fa5]+$/.test(part)) {
-              const key = createI18nKey(part, file);
+              const key = createI18nKey(part);
               result += '${' + functionName + "('" + key + "')}";
             } else {
               result += part;
@@ -296,7 +296,7 @@ export async function scanAndReplaceAll(): Promise<void> {
       },
       JSXText(path: any) {
         if (CHINESE_RE.test(path.node.value)) {
-          const key = createI18nKey(path.node.value.trim(), file);
+          const key = createI18nKey(path.node.value.trim());
           path.replaceWith(
             t.jsxExpressionContainer(
               t.callExpression(t.identifier(functionName), [t.stringLiteral(key)])
@@ -307,7 +307,7 @@ export async function scanAndReplaceAll(): Promise<void> {
       },
       JSXAttribute(path: any) {
         if (t.isStringLiteral(path.node.value) && CHINESE_RE.test(path.node.value.value)) {
-          const key = createI18nKey(path.node.value.value, file);
+          const key = createI18nKey(path.node.value.value);
           path.node.value = t.jsxExpressionContainer(
             t.callExpression(t.identifier(functionName), [t.stringLiteral(key)])
           );

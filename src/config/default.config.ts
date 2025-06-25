@@ -28,7 +28,8 @@ export const defaultConfig: I18nConfig = {
     maxChineseLength: 10, // 最大汉字长度
     hashLength: 6, // 哈希长度
     maxRetryCount: 5, // 最大重试次数
-    duplicateKeyStrategy: 'reuse', // 默认重复使用相同key
+    reuseExistingKey: true, // 默认重复使用相同文案的key
+    duplicateKeySuffix: 'hash', // 重复key后缀模式，默认hash
     keyPrefix: '', // key前缀，默认为空
     separator: '_', // 连接符，默认下划线
     pinyinOptions: {

@@ -16,7 +16,8 @@
     "maxChineseLength": 10,
     "hashLength": 6,
     "maxRetryCount": 5,
-    "duplicateKeyStrategy": "suffix",
+    "reuseExistingKey": true,
+    "duplicateKeySuffix": "hash",
     "keyPrefix": "",
     "separator": "_",
     "pinyinOptions": {

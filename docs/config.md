@@ -133,10 +133,15 @@ i18nx extract -c ./my-custom-config.json
 - **默认值**: `5`
 - **说明**: 生成唯一 key 的最大重试次数
 
-##### `keyGeneration.duplicateKeyStrategy`
-- **类型**: `string`
-- **默认值**: `"reuse"`
-- **说明**: 重复 key 处理策略
+##### `keyGeneration.reuseExistingKey`
+- **类型**: `boolean`
+- **默认值**: `true`
+- **说明**: 是否重复使用相同文案的key。当设置为 `true` 时，如果文案已存在，直接使用已有的key；当设置为 `false` 时，总是生成新的key
+
+##### `keyGeneration.duplicateKeySuffix`
+- **类型**: `"hash"`
+- **默认值**: `"hash"`
+- **说明**: 重复key的后缀模式，目前仅支持添加唯一hash后缀
 
 ##### `keyGeneration.keyPrefix`
 - **类型**: `string`
@@ -173,7 +178,8 @@ i18nx extract -c ./my-custom-config.json
     "maxChineseLength": 10,
     "hashLength": 6,
     "maxRetryCount": 5,
-    "duplicateKeyStrategy": "reuse",
+    "reuseExistingKey": true,
+    "duplicateKeySuffix": "hash",
     "pinyinOptions": {
       "toneType": "none",
       "type": "array"
@@ -460,6 +466,444 @@ i18n-xy translate -i "Hello World" -f en -t zh
 }
 ```
 
+##### `replacement.autoImport.insertPosition`
+- **类型**: `"top" | "afterImports"`
+- **默认值**: `"afterImports"`
+- **说明**: import语句的插入位置
+  - `"top"`: 在文件顶部插入
+  - `"afterImports"`: 在现有import语句之后插入（推荐）
+
+```json
+{
+  "replacement": {
+    "functionName": "t",
+    "autoImport": {
+      "enabled": true,
+      "insertPosition": "afterImports",
+      "imports": {
+        "src/**/*.{js,jsx,ts,tsx}": {
+          "importStatement": "import { useTranslation } from 'react-i18next';\nconst { t } = useTranslation();"
+        }
+      }
+    }
+  }
+}
+```
+
+#### 更多框架配置示例
+
+**Angular项目配置**:
+```json
+{
+  "replacement": {
+    "functionName": "$localize",
+    "autoImport": {
+      "enabled": true,
+      "imports": {
+        "src/**/*.{ts,js}": {
+          "importStatement": "import { $localize } from '@angular/localize/init';"
+        }
+      }
+    }
+  }
+}
+```
+
+**原生JavaScript项目配置**:
+```json
+{
+  "replacement": {
+    "functionName": "i18n.t",
+    "autoImport": {
+      "enabled": true,
+      "imports": {
+        "**/*.js": {
+          "importStatement": "import i18n from './utils/i18n.js';"
+        }
+      }
+    }
+  }
+}
+```
+
+## CLI 命令参考
+
+### `init` 命令
+
+初始化项目的国际化配置文件。
+
+```bash
+i18n-xy init
+# 或
+i18nx init
+```
+
+**交互式配置选项**：
+- `outputDir`: 国际化文件输出目录（默认：`locales`）
+- `configPath`: 配置文件保存路径（默认：`./i18n.config.json`）
+
+**生成文件**：
+- 配置文件：包含项目的默认配置
+- 目录结构：自动创建输出目录
+
+### `extract` 命令
+
+提取项目中的中文字符串并生成国际化文件。
+
+```bash
+i18n-xy extract [options]
+# 或
+i18nx extract [options]
+```
+
+**选项**：
+- `-c, --config <path>`: 指定配置文件路径（默认：`./i18n.config.json`）
+
+**示例**：
+```bash
+# 使用默认配置文件
+i18n-xy extract
+
+# 使用自定义配置文件
+i18n-xy extract -c ./config/my-i18n.config.json
+
+# 使用相对路径配置文件
+i18n-xy extract -c ../shared-config/i18n.config.json
+```
+
+**处理流程**：
+1. 加载并验证配置文件
+2. 扫描匹配的源文件
+3. 解析AST并提取中文字符串
+4. 生成拼音key并检查重复
+5. 替换源文件中的中文字符串
+6. 生成或更新语言文件
+7. 可选地添加import语句
+
+### `translate` 命令
+
+翻译中文字符串到其他语言，支持多种翻译模式。
+
+```bash
+i18n-xy translate [options]
+# 或
+i18nx translate [options]
+```
+
+**通用选项**：
+- `-c, --config <path>`: 指定配置文件路径（默认：`./i18n.config.json`）
+- `-f, --from <lang>`: 源语言代码（如：`zh`, `en`, `auto`）
+- `-t, --to <lang>`: 目标语言代码（如：`en`, `zh`, `ja`, `ko`）
+
+**翻译模式选项**：
+- `-i, --input <text|file>`: 要翻译的文本或文件路径
+- `-j, --json <file>`: 指定要翻译的JSON文件路径
+- `--batch`: 批量翻译语言文件（从配置的源语言文件翻译）
+- `--test`: 测试模式，用于验证翻译配置
+
+**使用示例**：
+
+```bash
+# 测试翻译功能
+i18n-xy translate --test -i "你好世界" -f zh -t en
+
+# 翻译指定文本
+i18n-xy translate -i "Hello World" -f en -t zh
+
+# 翻译文件内容
+i18n-xy translate -i ./input.txt -f zh -t en
+
+# 翻译JSON语言文件
+i18n-xy translate -j ./locales/zh-CN.json -f zh -t en
+
+# 批量翻译（从zh-CN.json生成en-US.json）
+i18n-xy translate --batch -f zh -t en
+
+# 使用自定义配置文件翻译
+i18n-xy translate -c ./config/custom.json --batch -f zh -t en
+```
+
+**支持的语言代码**：
+- `zh`: 中文
+- `en`: 英文
+- `ja`: 日文
+- `ko`: 韩文
+- `fr`: 法文
+- `de`: 德文
+- `es`: 西班牙文
+- `auto`: 自动检测（仅限源语言）
+
+## 故障排除指南
+
+### 常见错误及解决方案
+
+#### 1. 配置文件加载失败
+
+**错误信息**：
+```
+❌ 配置文件加载失败: ENOENT: no such file or directory
+```
+
+**解决方案**：
+- 确认配置文件路径正确
+- 使用 `i18n-xy init` 生成配置文件
+- 检查文件权限
+
+#### 2. 文件解析失败
+
+**错误信息**：
+```
+⚠️ 解析文件失败: /path/to/file.tsx
+```
+
+**可能原因及解决方案**：
+- **语法错误**：修复源文件的语法错误
+- **不支持的语法**：检查是否使用了实验性语法
+- **依赖缺失**：确保安装了所有必要的依赖
+
+**调试方法**：
+```bash
+# 启用详细日志查看具体错误
+i18n-xy extract -c ./config.json --verbose
+```
+
+#### 3. 翻译服务配置错误
+
+**错误信息**：
+```
+❌ 翻译服务不可用，请检查配置
+💡 百度翻译需要配置 appid 和 key
+```
+
+**解决方案**：
+- 确认翻译配置已启用：`translation.enabled: true`
+- 配置正确的API密钥：
+  ```json
+  {
+    "translation": {
+      "enabled": true,
+      "provider": "baidu",
+      "baidu": {
+        "appid": "your_actual_app_id",
+        "key": "your_actual_api_key"
+      }
+    }
+  }
+  ```
+
+#### 4. 内存使用过高
+
+**症状**：处理大型项目时内存占用过高或进程崩溃
+
+**解决方案**：
+- 使用更精确的 `include` 和 `exclude` 模式
+- 分批处理文件：
+  ```json
+  {
+    "include": [
+      "src/components/**/*.{js,jsx,ts,tsx}"
+    ],
+    "exclude": [
+      "node_modules/**",
+      "dist/**",
+      "**/*.test.*",
+      "**/*.stories.*"
+    ]
+  }
+  ```
+- 使用 `tempDir` 避免直接修改源文件
+- 降低翻译并发数：`translation.concurrency: 5`
+
+#### 5. Key 重复冲突
+
+**错误信息**：
+```
+Duplicate key "huan_ying" found with different content
+```
+
+**解决方案**：
+- 调整Key重复处理策略：
+  ```json
+  {
+    "keyGeneration": {
+      "reuseExistingKey": false,  // 不重复使用相同文案的key
+      "duplicateKeySuffix": "hash"  // key重复时添加hash后缀
+    }
+  }
+  ```
+- 使用Key前缀区分不同模块：
+  ```json
+  {
+    "keyGeneration": {
+      "keyPrefix": "common",
+      "separator": "_"
+    }
+  }
+  ```
+
+### 性能优化建议
+
+#### 1. 文件扫描优化
+
+```json
+{
+  "include": [
+    "src/**/*.{js,jsx,ts,tsx}"  // 精确指定需要的文件类型
+  ],
+  "exclude": [
+    "node_modules/**",
+    "dist/**",
+    "build/**",
+    "**/*.d.ts",              // 排除类型声明文件
+    "**/*.test.*",            // 排除测试文件
+    "**/*.spec.*",
+    "**/*.stories.*",         // 排除Storybook文件
+    "**/vendor/**",           // 排除第三方代码
+    "**/*.min.js"             // 排除压缩文件
+  ]
+}
+```
+
+#### 2. 翻译性能优化
+
+```json
+{
+  "translation": {
+    "concurrency": 5,         // 降低并发数避免API限流
+    "retryTimes": 2,          // 减少重试次数
+    "retryDelay": 1000,       // 增加重试延迟
+    "batchDelay": 500         // 增加批次间延迟
+  }
+}
+```
+
+#### 3. 日志优化
+
+```json
+{
+  "logging": {
+    "enabled": true,
+    "level": "minimal"        // 在生产环境使用最小日志
+  }
+}
+```
+
+## 高级配置场景
+
+### Monorepo 项目配置
+
+对于包含多个子项目的 monorepo 结构：
+
+```json
+{
+  "locale": "zh-CN",
+  "outputDir": "packages/shared/locales",
+  "include": [
+    "packages/*/src/**/*.{js,jsx,ts,tsx}",
+    "apps/*/src/**/*.{js,jsx,ts,tsx}"
+  ],
+  "exclude": [
+    "node_modules/**",
+    "packages/*/dist/**",
+    "apps/*/dist/**",
+    "**/*.test.*"
+  ],
+  "keyGeneration": {
+    "reuseExistingKey": false,  // 大型项目建议不重复使用，避免冲突
+    "duplicateKeySuffix": "hash",  // 使用hash后缀处理重复
+    "keyPrefix": "shared",
+    "separator": "_"
+  }
+}
+```
+
+### 微前端项目配置
+
+```json
+{
+  "locale": "zh-CN",
+  "outputDir": "src/locales",
+  "include": [
+    "src/**/*.{js,jsx,ts,tsx}"
+  ],
+  "exclude": [
+    "node_modules/**",
+    "src/shared/**"  // 排除共享组件，避免重复处理
+  ],
+  "keyGeneration": {
+    "keyPrefix": "app_main",  // 使用应用前缀
+    "reuseExistingKey": false,  // 微前端项目建议独立key
+    "duplicateKeySuffix": "hash"
+  },
+  "replacement": {
+    "autoImport": {
+      "enabled": true,
+      "imports": {
+        "src/**/*.{js,jsx,ts,tsx}": {
+          "importStatement": "import { useTranslation } from '@/hooks/useTranslation';"
+        }
+      }
+    }
+  }
+}
+```
+
+### CI/CD 集成配置
+
+```json
+{
+  "locale": "zh-CN",
+  "outputDir": "locales",
+  "tempDir": "ci-temp",  // 使用临时目录，不修改源码
+  "include": [
+    "src/**/*.{js,jsx,ts,tsx}"
+  ],
+  "logging": {
+    "enabled": true,
+    "level": "minimal"  // CI环境使用最小日志
+  },
+  "translation": {
+    "enabled": true,
+    "provider": "baidu",
+    "concurrency": 3,  // 降低并发避免CI环境限制
+    "batchDelay": 1000
+  }
+}
+```
+
+### 开发环境 vs 生产环境
+
+**开发环境配置** (`i18n.dev.config.json`):
+```json
+{
+  "locale": "zh-CN",
+  "outputDir": "src/locales",
+  "tempDir": "dev-temp",  // 开发时不直接修改源文件
+  "logging": {
+    "enabled": true,
+    "level": "verbose"  // 开发时使用详细日志
+  },
+  "keyGeneration": {
+    "reuseExistingKey": true,  // 开发时重复使用相同文案
+    "duplicateKeySuffix": "hash"
+  }
+}
+```
+
+**生产环境配置** (`i18n.prod.config.json`):
+```json
+{
+  "locale": "zh-CN",
+  "outputDir": "dist/locales",
+  "logging": {
+    "enabled": false  // 生产构建时禁用日志
+  },
+  "keyGeneration": {
+    "duplicateKeyStrategy": "reuse"  // 生产时重复使用key
+  }
+}
+```
+
 ## 完整配置示例
 
 以下是包含所有配置选项的完整示例：
@@ -488,7 +932,8 @@ i18n-xy translate -i "Hello World" -f en -t zh
     "maxChineseLength": 10,
     "hashLength": 6,
     "maxRetryCount": 5,
-    "duplicateKeyStrategy": "reuse",
+    "reuseExistingKey": true,
+    "duplicateKeySuffix": "hash",
     "keyPrefix": "",
     "separator": "_",
     "pinyinOptions": {
@@ -592,7 +1037,7 @@ i18n-xy translate -i "Hello World" -f en -t zh
     "src/**/*.{js,ts,jsx,tsx}"
   ],
   "keyGeneration": {
-    "keyPrefix": "app",
+    "keyPrefix": "",
     "separator": "-",
     "duplicateKeyStrategy": "reuse"
   },

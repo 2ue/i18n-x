@@ -14,7 +14,8 @@ export interface I18nConfig {
     maxChineseLength?: number; // 最大汉字长度，默认 10
     hashLength?: number; // 哈希长度，默认 6
     maxRetryCount?: number; // 最大重试次数，默认 5
-    duplicateKeyStrategy?: 'reuse' | 'suffix' | 'context' | 'error' | 'warning'; // 重复key处理策略，默认 'reuse'
+    reuseExistingKey?: boolean; // 是否重复使用相同文案的key，默认 true
+    duplicateKeySuffix?: 'hash'; // 重复key后缀模式，默认 'hash'
     keyPrefix?: string; // key前缀，可选
     separator?: string; // 连接符，默认 '_'
     pinyinOptions?: {

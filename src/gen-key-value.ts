@@ -9,8 +9,13 @@ interface KeyValueMap {
   [key: string]: string;
 }
 
+interface ValueKeyMap {
+  [value: string]: string;
+}
+
 // 内存缓存
 let keyValueCache: KeyValueMap = {};
+let valueKeyCache: ValueKeyMap = {}; // 新增：文案到key的反向映射
 let outputFilePath = '';
 
 // 初始化缓存和文件
@@ -22,6 +27,13 @@ export async function initI18nCache(): Promise<void> {
 
   // 使用新的 readJson 函数，带默认值
   keyValueCache = await readJson<KeyValueMap>(outputFilePath, {});
+
+  // 构建反向映射缓存：文案 -> key
+  valueKeyCache = {};
+  for (const [key, value] of Object.entries(keyValueCache)) {
+    valueKeyCache[value] = key;
+  }
+
   const existingKeyCount = Object.keys(keyValueCache).length;
 
   if (existingKeyCount > 0) {
@@ -39,88 +51,45 @@ function toShortHash(text: string): string {
 }
 
 /**
- * 处理重复key的策略
+ * 生成唯一的key，处理重复情况
  */
-function handleDuplicateKey(baseKey: string, text: string, filePath?: string): string {
+function generateUniqueKey(baseKey: string, text: string): string {
   const config = ConfigManager.get();
-  const strategy = config.keyGeneration?.duplicateKeyStrategy ?? 'reuse';
+  const separator = config.keyGeneration?.separator ?? '_';
+  const maxRetry = config.keyGeneration?.maxRetryCount ?? 5;
 
-  switch (strategy) {
-    case 'reuse':
-      // 重复使用相同的key（推荐）
-      if (keyValueCache[baseKey] && keyValueCache[baseKey] !== text) {
-        // 如果key已存在但内容不同，显示警告
-        Logger.warn(`Key "${baseKey}" 已存在但内容不同:`);
-        Logger.warn(`   已存在: "${keyValueCache[baseKey]}"`);
-        Logger.warn(`   新内容: "${text}"`);
-        Logger.warn(`   使用已存在的key`);
-      }
-      return baseKey;
-
-    case 'suffix': {
-      // 添加hash后缀（当前行为）
-      if (!keyValueCache[baseKey]) {
-        return baseKey;
-      }
-      const separator = config.keyGeneration?.separator ?? '_';
-      let finalKey = baseKey + separator + toShortHash(text);
-      let tryCount = 0;
-      const maxRetry = config.keyGeneration?.maxRetryCount ?? 5;
-
-      while (keyValueCache[finalKey] && tryCount < maxRetry) {
-        finalKey = baseKey + separator + toShortHash(text + Math.random().toString());
-        tryCount++;
-      }
-      return finalKey;
-    }
-
-    case 'context': {
-      // 根据文件路径生成前缀
-      if (!keyValueCache[baseKey]) {
-        return baseKey;
-      }
-      const contextSeparator = config.keyGeneration?.separator ?? '_';
-      if (filePath) {
-        const fileName = path.basename(filePath, path.extname(filePath));
-        const contextKey = `${fileName}${contextSeparator}${baseKey}`;
-        return keyValueCache[contextKey] ?
-          contextKey + contextSeparator + toShortHash(text) :
-          contextKey;
-      }
-      return baseKey + contextSeparator + toShortHash(text);
-    }
-
-    case 'error': {
-      // 遇到重复时报错
-      if (keyValueCache[baseKey] && keyValueCache[baseKey] !== text) {
-        throw new Error(
-          `Duplicate key "${baseKey}" found with different content:\n` +
-          `  Existing: "${keyValueCache[baseKey]}"\n` +
-          `  New: "${text}"\n` +
-          `  File: ${filePath ?? 'unknown'}`
-        );
-      }
-      return baseKey;
-    }
-
-    case 'warning':
-      // 显示警告但重复使用key
-      if (keyValueCache[baseKey] && keyValueCache[baseKey] !== text) {
-        Logger.warn(`重复key "${baseKey}" 发现不同内容:`);
-        Logger.warn(`   已存在: "${keyValueCache[baseKey]}"`);
-        Logger.warn(`   新内容: "${text}"`);
-        Logger.warn(`   文件: ${filePath || 'unknown'}`);
-        Logger.warn(`   重复使用已存在key`);
-      }
-      return baseKey;
-
-    default:
-      return baseKey;
+  // 如果baseKey不重复，直接返回
+  if (!keyValueCache[baseKey]) {
+    return baseKey;
   }
+
+  // 添加hash后缀处理重复key
+  let finalKey = baseKey + separator + toShortHash(text);
+  let tryCount = 0;
+
+  while (keyValueCache[finalKey] && tryCount < maxRetry) {
+    finalKey = baseKey + separator + toShortHash(text + Math.random().toString());
+    tryCount++;
+  }
+
+  if (tryCount >= maxRetry) {
+    Logger.warn(`生成唯一key失败，达到最大重试次数: ${baseKey}`);
+    // 使用时间戳作为最后的备选方案
+    finalKey = baseKey + separator + Date.now().toString(36);
+  }
+
+  return finalKey;
 }
 
-export function createI18nKey(text: string, filePath?: string): string {
+export function createI18nKey(text: string): string {
   const config = ConfigManager.get();
+  const reuseExistingKey = config.keyGeneration?.reuseExistingKey ?? true;
+
+  // 如果配置为重复使用相同文案的key，先检查文案是否已存在
+  if (reuseExistingKey && valueKeyCache[text]) {
+    Logger.verbose(`重复使用已存在文案的key: "${valueKeyCache[text]}" for "${text}"`);
+    return valueKeyCache[text];
+  }
 
   // 提取所有汉字，截取前N个
   const maxLength = config.keyGeneration?.maxChineseLength ?? 10;
@@ -150,11 +119,13 @@ export function createI18nKey(text: string, filePath?: string): string {
   // 构建完整key（添加前缀）
   const keyWithPrefix = keyPrefix ? `${keyPrefix}${separator}${baseKey}` : baseKey;
 
-  // 处理重复key
-  const finalKey = handleDuplicateKey(keyWithPrefix, text, filePath);
+  // 生成唯一key（处理重复）
+  const finalKey = generateUniqueKey(keyWithPrefix, text);
 
-  // 缓存到内存
+  // 缓存到内存（双向映射）
   keyValueCache[finalKey] = text;
+  valueKeyCache[text] = finalKey;
+
   return finalKey;
 }
 

@@ -20,8 +20,9 @@
     "maxChineseLength": 10,
     "hashLength": 6,
     "maxRetryCount": 5,
-    "duplicateKeyStrategy": "reuse",
-    "keyPrefix": "app",
+    "reuseExistingKey": true,
+    "duplicateKeySuffix": "hash",
+    "keyPrefix": "",
     "separator": "_",
     "pinyinOptions": {
       "toneType": "none",
