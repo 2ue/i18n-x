@@ -4,7 +4,7 @@ import { findTargetFiles, readFile, writeFileWithTempDir } from '../utils/fs';
 import { ConfigManager } from '../config';
 import { createI18nKey, initI18nCache, flushI18nCache } from '../gen-key-value';
 import { Logger } from '../utils/logger';
-import { findMatchingImport } from '../utils/pattern';
+import { ImportManager } from '../utils/import-manager';
 
 // 简单的require导入，只针对有兼容性问题的模块
 const traverse = require('@babel/traverse').default;
@@ -13,115 +13,7 @@ const generate = require('@babel/generator').default;
 // 中文字符正则
 const CHINESE_RE = /[\u4e00-\u9fa5]/;
 
-/**
- * 格式化import语句，确保末尾有换行符
- * 这样可以保证插入的代码格式正确，避免代码挤在一行
- */
-function formatImportStatement(importStatement: string): string {
-  if (!importStatement.endsWith('\n')) {
-    return importStatement + '\n';
-  }
-  return importStatement;
-}
 
-/**
- * 检查是否已经存在相同的import语句
- */
-function hasExistingImport(ast: any, importStatement: string): boolean {
-  try {
-    // 确保import语句末尾有换行符，与实际插入的格式保持一致
-    const formattedImportStatement = formatImportStatement(importStatement);
-
-    const importAst = parse(formattedImportStatement, {
-      sourceType: 'module',
-      plugins: ['jsx', 'typescript']
-    });
-
-    if (!importAst.program?.body || importAst.program.body.length === 0) {
-      return false;
-    }
-
-    const newStatements = importAst.program.body;
-    const existingStatements = ast.program.body;
-
-    // 检查每个新语句是否已存在
-    for (const newStmt of newStatements) {
-      let found = false;
-      for (const existingStmt of existingStatements) {
-        // 比较AST节点的字符串表示（简单但有效的方法）
-        const newCode = generate(newStmt, { minified: true }).code;
-        const existingCode = generate(existingStmt, { minified: true }).code;
-        if (newCode === existingCode) {
-          found = true;
-          break;
-        }
-      }
-      if (!found) {
-        return false; // 有新语句不存在
-      }
-    }
-    return true; // 所有语句都已存在
-  } catch (error) {
-    Logger.verbose(`检查import重复时出错: ${error}`);
-    return false;
-  }
-}
-
-/**
- * 在AST中添加import语句（支持不同插入位置）
- */
-function addImportToAST(
-  ast: any,
-  importStatement: string,
-  insertPosition: 'top' | 'afterImports' = 'afterImports')
-  : void {
-  try {
-    // 检查是否已存在相同的import语句
-    if (hasExistingImport(ast, importStatement)) {
-      Logger.verbose('Import语句已存在，跳过插入');
-      return;
-    }
-
-    // 确保import语句末尾有换行符，保证代码格式正确
-    const formattedImportStatement = formatImportStatement(importStatement);
-    if (formattedImportStatement !== importStatement) {
-      Logger.verbose('自动添加换行符到import语句末尾');
-    }
-
-    // 解析import语句为AST节点
-    const importAst = parse(formattedImportStatement, {
-      sourceType: 'module',
-      plugins: ['jsx', 'typescript']
-    });
-
-    // 将解析出的语句添加到指定位置
-    if (importAst.program?.body && importAst.program.body.length > 0) {
-      let insertIndex = 0;
-
-      if (insertPosition === 'afterImports') {
-        // 在现有import语句之后插入
-        for (let i = 0; i < ast.program.body.length; i++) {
-          if (t.isImportDeclaration(ast.program.body[i])) {
-            insertIndex = i + 1;
-          } else {
-            break;
-          }
-        }
-      } else {
-        // 在文件顶部插入
-        insertIndex = 0;
-      }
-
-      // 插入新的语句
-      ast.program.body.splice(insertIndex, 0, ...importAst.program.body);
-
-      Logger.verbose(`Import语句已插入到位置: ${insertPosition}`);
-    }
-  } catch (error) {
-    Logger.warn(`无法解析import语句: ${importStatement}`);
-    Logger.verbose(`错误详情: ${error}`);
-  }
-}
 
 /**
  * 检查节点是否在不应该替换的位置
@@ -244,6 +136,9 @@ export async function scanAndReplaceAll(): Promise<void> {
   let modifiedCount = 0;
   let totalReplacements = 0;
 
+  // 创建import管理器实例
+  const importManager = new ImportManager();
+
   for (const file of files) {
     processedCount++;
     Logger.info(`[${processedCount}/${files.length}] 处理文件: ${file}`, 'verbose');
@@ -262,24 +157,12 @@ export async function scanAndReplaceAll(): Promise<void> {
       continue;
     }
 
-    // 跟踪是否已经插入import和是否发生了替换
-    let hasImportInserted = false;
+    // 重置import管理器状态
+    importManager.reset();
+
+    // 跟踪是否发生了替换
     let hasReplacement = false;
     let fileReplacements = 0;
-
-    // 按需插入import的辅助函数
-    const ensureImportInserted = () => {
-      if (!hasImportInserted && autoImportEnabled && hasReplacement) {
-        const importStatement = findMatchingImport(file, imports);
-        if (importStatement) {
-          Logger.verbose(`为文件 ${file} 添加import语句: ${importStatement.trim()}`);
-          addImportToAST(ast, importStatement, insertPosition);
-          hasImportInserted = true;
-        } else {
-          Logger.warn(`文件 ${file} 需要import语句但未找到匹配的import配置`, 'normal');
-        }
-      }
-    };
 
     traverse(ast, {
       StringLiteral(path: any) {
@@ -360,21 +243,18 @@ export async function scanAndReplaceAll(): Promise<void> {
           Logger.verbose(`替换JSX属性: "${attributeValue}" -> {${functionName}("${key}")}`);
         }
       },
-      // 在Program节点遍历结束时检查是否需要插入import
-      // Program: {
-      //   exit() {
-      //     Logger.verbose('遍历结束，检查是否需要插入import');
-      //     ensureImportInserted();
-      //   }
-      // }
     });
 
-
-    ensureImportInserted();
+    // 使用import管理器插入import语句
+    importManager.insertImportIfNeeded(ast, file, autoImportEnabled, hasReplacement, imports, insertPosition);
 
     // 只有在发生替换时才输出文件
     if (hasReplacement) {
-      const output = generate(ast, { retainLines: true }, code).code;
+      let output = generate(ast, { retainLines: true }, code).code;
+
+      // 使用import管理器添加空行
+      output = importManager.addEmptyLineToOutput(output);
+
       await writeFileWithTempDir(file, output, config.tempDir);
       modifiedCount++;
       totalReplacements += fileReplacements;
