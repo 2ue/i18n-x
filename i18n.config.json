@@ -4,7 +4,7 @@
   "outputDir": "locales",
   "tempDir": "test/temp",
   "include": [
-    "test/**/*.{js,jsx,ts,tsx}"
+    "test/demo/**/*.{js,jsx,ts,tsx}"
   ],
   "exclude": [
     "node_modules/**",
