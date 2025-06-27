@@ -250,6 +250,13 @@ The configuration file uses JSON format and includes the following main sections
 - **Default**: `"$t"`
 - **Description**: Replacement function name
 
+#### `quoteType`
+- **Type**: `"single" | "double"`
+- **Default**: `"single"`
+- **Description**: Quote type for string literals
+  - `"single"`: Use single quotes `'key'`
+  - `"double"`: Use double quotes `"key"`
+
 #### `autoImport`
 
 ##### `enabled`
@@ -271,6 +278,7 @@ The configuration file uses JSON format and includes the following main sections
 {
   "replacement": {
     "functionName": "t",
+    "quoteType": "double",
     "autoImport": {
       "enabled": true,
       "insertPosition": "afterImports",

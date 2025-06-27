@@ -250,6 +250,13 @@
 - **默认值**: `"$t"`
 - **描述**: 替换函数名
 
+#### `quoteType`
+- **类型**: `"single" | "double"`
+- **默认值**: `"single"`
+- **描述**: 字符串字面量的引号类型
+  - `"single"`: 使用单引号 `'key'`
+  - `"double"`: 使用双引号 `"key"`
+
 #### `autoImport`
 
 ##### `enabled`
@@ -271,6 +278,7 @@
 {
   "replacement": {
     "functionName": "t",
+    "quoteType": "double",
     "autoImport": {
       "enabled": true,
       "insertPosition": "afterImports",

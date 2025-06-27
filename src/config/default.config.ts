@@ -54,6 +54,7 @@ export const defaultConfig: I18nConfig = {
   // 替换配置
   replacement: {
     functionName: '$t', // 默认替换函数名
+    quoteType: 'single', // 默认使用单引号
     autoImport: {
       enabled: false, // 默认不启用自动引入
       insertPosition: 'afterImports', // 默认在import语句后插入

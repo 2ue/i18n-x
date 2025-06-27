@@ -39,6 +39,7 @@
   },
   "replacement": {
     "functionName": "t",
+    "quoteType": "single",
     "autoImport": {
       "enabled": true,
       "insertPosition": "afterImports",
