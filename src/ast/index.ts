@@ -1503,6 +1503,109 @@ export async function scanAndReplaceAll(): Promise<void> {
           }
         }
       },
+
+      // 处理类方法中的字符串字面量
+      ClassMethod(path: any) {
+        // 遍历方法体中的所有语句
+        path.node.body.body.forEach((statement: any) => {
+          // 处理return语句中的字符串字面量
+          if (
+            t.isReturnStatement(statement) &&
+            t.isStringLiteral(statement.argument) &&
+            containsChinese(statement.argument.value)
+          ) {
+            const stringValue = statement.argument.value;
+            const key = createI18nKey(stringValue);
+
+            // 替换return语句中的字符串
+            const callExpression = createI18nCallExpression(functionName, key, quoteType);
+            statement.argument = callExpression;
+
+            hasReplacement = true;
+            fileReplacements++;
+            Logger.verbose(
+              `替换类方法中return语句的字符串: "${stringValue}" -> ${functionName}(${quoteType === 'single' ? "'" : '"'}${key}${quoteType === 'single' ? "'" : '"'})`
+            );
+          }
+
+          // 处理表达式语句中的字符串字面量
+          if (t.isExpressionStatement(statement)) {
+            // 处理方法调用中的字符串参数
+            if (t.isCallExpression(statement.expression)) {
+              statement.expression.arguments.forEach((arg: any, argIndex: number) => {
+                if (t.isStringLiteral(arg) && containsChinese(arg.value)) {
+                  const stringValue = arg.value;
+                  const key = createI18nKey(stringValue);
+
+                  // 替换方法调用参数中的字符串
+                  const callExpression = createI18nCallExpression(functionName, key, quoteType);
+                  // 使用类型断言确保TypeScript知道这是一个CallExpression
+                  (statement.expression as t.CallExpression).arguments[argIndex] = callExpression;
+
+                  hasReplacement = true;
+                  fileReplacements++;
+                  Logger.verbose(
+                    `替换类方法中方法调用参数的字符串: "${stringValue}" -> ${functionName}(${quoteType === 'single' ? "'" : '"'}${key}${quoteType === 'single' ? "'" : '"'})`
+                  );
+                }
+
+                // 处理new表达式中的字符串参数
+                if (t.isNewExpression(arg)) {
+                  // 使用类型断言解决TypeScript类型问题
+                  const newExpr = arg as t.NewExpression & { arguments: t.Expression[] };
+                  if (newExpr.arguments) {
+                    newExpr.arguments.forEach((newArg: any, newArgIndex: number) => {
+                      if (t.isStringLiteral(newArg) && containsChinese(newArg.value)) {
+                        const stringValue = newArg.value;
+                        const key = createI18nKey(stringValue);
+
+                        // 替换new表达式参数中的字符串
+                        const callExpression = createI18nCallExpression(
+                          functionName,
+                          key,
+                          quoteType
+                        );
+                        newExpr.arguments[newArgIndex] = callExpression;
+
+                        hasReplacement = true;
+                        fileReplacements++;
+                        Logger.verbose(
+                          `替换类方法中new表达式参数的字符串: "${stringValue}" -> ${functionName}(${quoteType === 'single' ? "'" : '"'}${key}${quoteType === 'single' ? "'" : '"'})`
+                        );
+                      }
+                    });
+                  }
+                }
+              });
+            }
+          }
+        });
+      },
+
+      // 处理new表达式中的字符串参数
+      NewExpression(path: any) {
+        // 使用类型断言和交叉类型解决TypeScript类型问题
+        const node = path.node as t.NewExpression & { arguments: t.Expression[] };
+
+        if (node.arguments && Array.isArray(node.arguments)) {
+          node.arguments.forEach((arg: any, index: number) => {
+            if (t.isStringLiteral(arg) && containsChinese(arg.value)) {
+              const stringValue = arg.value;
+              const key = createI18nKey(stringValue);
+
+              // 替换new表达式参数中的字符串
+              const callExpression = createI18nCallExpression(functionName, key, quoteType);
+              node.arguments[index] = callExpression;
+
+              hasReplacement = true;
+              fileReplacements++;
+              Logger.verbose(
+                `替换new表达式参数中的字符串: "${stringValue}" -> ${functionName}(${quoteType === 'single' ? "'" : '"'}${key}${quoteType === 'single' ? "'" : '"'})`
+              );
+            }
+          });
+        }
+      },
     });
 
     // 使用import管理器插入import语句

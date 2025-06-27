@@ -381,13 +381,13 @@ export default class ApplicationCore {
   }
 
   initializeSystem(): string {
-    this.addNotification(new SystemNotification(
-      '系统启动成功',
-      SystemModule.SYSTEM_SETTINGS,
-      '成功'
+    this.addNotification(new SystemNotification($t1('xi_tong_qi_dong_cheng_gong'),
+
+    SystemModule.SYSTEM_SETTINGS, $t1('cheng_gong')
+
     ));
 
-    return '系统初始化完成，欢迎使用';
+    return $t1('xi_tong_chu_shi_hua_wan_cheng_huan_ying_shi');
   }
 
   addNotification(notification: BaseNotification): void {
