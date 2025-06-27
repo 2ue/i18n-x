@@ -23,51 +23,51 @@ type NotificationLevel = '信息' | '警告' | '错误' | '成功';
 
 // 2. 枚举定义
 enum OrderStatus {
-  PENDING = '待处理',
-  PROCESSING = '处理中',
-  COMPLETED = '已完成',
-  CANCELLED = '已取消',
-  REFUNDED = '已退款',
+  PENDING = $t1('dai_chu_li'),
+  PROCESSING = $t1('chu_li_zhong'),
+  COMPLETED = $t1('yi_wan_cheng'),
+  CANCELLED = $t1('yi_qu_xiao'),
+  REFUNDED = $t1('yi_tui_kuan'),
 }
 
 enum SystemModule {
-  USER_MANAGEMENT = '用户管理',
-  PRODUCT_CATALOG = '产品目录',
-  ORDER_PROCESSING = '订单处理',
-  REPORT_ANALYTICS = '报表分析',
-  SYSTEM_SETTINGS = '系统设置',
+  USER_MANAGEMENT = $t1('yong_hu_guan_li'),
+  PRODUCT_CATALOG = $t1('chan_pin_mu_lu'),
+  ORDER_PROCESSING = $t1('ding_dan_chu_li'),
+  REPORT_ANALYTICS = $t1('bao_biao_fen_xi'),
+  SYSTEM_SETTINGS = $t1('xi_tong_she_zhi'),
 }
 
 // 3. 常量定义
 const DEFAULT_MESSAGES = {
-  loading: $t1("zheng_zai_jia_zai"),
-  error: $t1("cao_zuo_shi_bai_qing_chong_shi"),
-  success: $t1("cao_zuo_cheng_gong"),
-  confirm: $t1("que_ren_cao_zuo"),
-  cancel: $t1("qu_xiao_cao_zuo"),
-  save: $t1("bao_cun_geng_gai"),
-  delete: $t1("shan_chu_xiang_mu"),
-  edit: $t1("bian_ji_xin_xi")
+  loading: $t1('zheng_zai_jia_zai'),
+  error: $t1('cao_zuo_shi_bai_qing_chong_shi'),
+  success: $t1('cao_zuo_cheng_gong'),
+  confirm: $t1('que_ren_cao_zuo'),
+  cancel: $t1('qu_xiao_cao_zuo'),
+  save: $t1('bao_cun_geng_gai'),
+  delete: $t1('shan_chu_xiang_mu'),
+  edit: $t1('bian_ji_xin_xi')
 } as const;
 
 const VALIDATION_MESSAGES = {
-  required: $t1("ci_zi_duan_wei_bi_tian_xiang"),
-  email: $t1("qing_shu_ru_you_xiao_de_you_xiang_di_zhi"),
-  minLength: $t1("shu_ru_chang_du_bu_neng_shao_yu_ge_zi"),
-  maxLength: $t1("shu_ru_chang_du_bu_neng_chao_guo_ge_zi"),
-  phoneNumber: $t1("qing_shu_ru_you_xiao_de_shou_ji_hao_ma"),
-  password: $t1("mi_ma_bi_xu_bao_han_zi_mu_he_shu"),
-  confirmPassword: $t1("liang_ci_shu_ru_de_mi_ma_bu_yi_zhi")
+  required: $t1('ci_zi_duan_wei_bi_tian_xiang'),
+  email: $t1('qing_shu_ru_you_xiao_de_you_xiang_di_zhi'),
+  minLength: $t1('shu_ru_chang_du_bu_neng_shao_yu_ge_zi'),
+  maxLength: $t1('shu_ru_chang_du_bu_neng_chao_guo_ge_zi'),
+  phoneNumber: $t1('qing_shu_ru_you_xiao_de_shou_ji_hao_ma'),
+  password: $t1('mi_ma_bi_xu_bao_han_zi_mu_he_shu'),
+  confirmPassword: $t1('liang_ci_shu_ru_de_mi_ma_bu_yi_zhi')
 };
 
 // 4. 函数定义和实现
 function createUser(userData: Partial<User>): User {
   const defaultUser: User = {
     id: Math.random(),
-    name: $t1("xin_yong_hu"),
+    name: $t1('xin_yong_hu'),
     email: '',
-    role: $t1("cha_kan_zhe"),
-    status: $t1("li_xian"),
+    role: $t1('cha_kan_zhe'),
+    status: $t1('li_xian'),
     permissions: []
   };
 
@@ -76,30 +76,30 @@ function createUser(userData: Partial<User>): User {
 
 function formatUserStatus(status: User['status']): string {
   const statusMap: Record<User['status'], string> = {
-    '在线': $t1("yong_hu_dang_qian_zai_xian"),
-    '离线': $t1("yong_hu_yi_li_xian"),
-    '忙碌': $t1("yong_hu_zheng_mang_qing_shao_hou_lian_xi")
+    '在线': $t1('yong_hu_dang_qian_zai_xian'),
+    '离线': $t1('yong_hu_yi_li_xian'),
+    '忙碌': $t1('yong_hu_zheng_mang_qing_shao_hou_lian_xi')
   };
 
-  return statusMap[status] || $t1("wei_zhi_zhuang_tai");
+  return statusMap[status] || $t1('wei_zhi_zhuang_tai');
 }
 
 function validateEmail(email: string): string | null {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
   if (!email) {
-    return $t1("you_xiang_di_zhi_bu_neng_wei_kong");
+    return $t1('you_xiang_di_zhi_bu_neng_wei_kong');
   }
 
   if (!emailRegex.test(email)) {
-    return $t1("you_xiang_ge_shi_bu_zheng_que");
+    return $t1('you_xiang_ge_shi_bu_zheng_que');
   }
 
   return null;
 }
 
 // 5. 泛型函数
-function createResponse<T>(data: T, success: boolean = true, message: string = $t1("cao_zuo_cheng_gong")): ApiResponse<T> {
+function createResponse<T>(data: T, success: boolean = true, message: string = $t1('cao_zuo_cheng_gong')): ApiResponse<T> {
   return {
     data,
     success,
@@ -115,11 +115,11 @@ interface ApiResponse<T> {
   timestamp: string;
 }
 
-function processDataList<T extends {id: number;}>(
-items: T[],
-processor: (item: T) => T,
-filterFn?: (item: T) => boolean)
-: T[] {
+function processDataList<T extends { id: number; }>(
+  items: T[],
+  processor: (item: T) => T,
+  filterFn?: (item: T) => boolean)
+  : T[] {
   const filtered = filterFn ? items.filter(filterFn) : items;
   return filtered.map(processor);
 }
@@ -127,7 +127,7 @@ filterFn?: (item: T) => boolean)
 // 6. 类定义
 class UserManager {
   private users: User[] = [];
-  private readonly systemName: string = $t1("yong_hu_guan_li_xi_tong");
+  private readonly systemName: string = $t1('yong_hu_guan_li_xi_tong');
 
   constructor(initialUsers: User[] = []) {
     this.users = initialUsers;
@@ -141,7 +141,7 @@ class UserManager {
     };
 
     this.users.push(newUser);
-    this.logAction($t1("tian_jia_yong_hu"), newUser.name);
+    this.logAction($t1('tian_jia_yong_hu'), newUser.name);
     return newUser;
   }
 
@@ -149,12 +149,12 @@ class UserManager {
     const userIndex = this.users.findIndex((user) => user.id === id);
 
     if (userIndex === -1) {
-      this.logAction($t1("geng_xin_shi_bai"), `${$t1('yong_hu')}ID ${id} ${$t1('bu_cun_zai')}`);
+      this.logAction($t1('geng_xin_shi_bai'), `${$t1('yong_hu')}ID ${id} ${$t1('bu_cun_zai')}`);
       return null;
     }
 
     this.users[userIndex] = { ...this.users[userIndex], ...updates };
-    this.logAction($t1("geng_xin_yong_hu"), this.users[userIndex].name);
+    this.logAction($t1('geng_xin_yong_hu'), this.users[userIndex].name);
     return this.users[userIndex];
   }
 
@@ -162,12 +162,12 @@ class UserManager {
     const userIndex = this.users.findIndex((user) => user.id === id);
 
     if (userIndex === -1) {
-      this.logAction($t1("shan_chu_shi_bai"), `${$t1('yong_hu')}ID ${id} ${$t1('bu_cun_zai')}`);
+      this.logAction($t1('shan_chu_shi_bai'), `${$t1('yong_hu')}ID ${id} ${$t1('bu_cun_zai')}`);
       return false;
     }
 
     const deletedUser = this.users.splice(userIndex, 1)[0];
-    this.logAction($t1("shan_chu_yong_hu"), deletedUser.name);
+    this.logAction($t1('shan_chu_yong_hu'), deletedUser.name);
     return true;
   }
 
@@ -176,7 +176,7 @@ class UserManager {
   }
 
   getOnlineUsers(): User[] {
-    return this.users.filter((user) => user.status === $t1("zai_xian"));
+    return this.users.filter((user) => user.status === $t1('zai_xian'));
   }
 
   private generateUserId(): number {
@@ -194,7 +194,7 @@ class UserManager {
       const users = JSON.parse(jsonData) as User[];
       return new UserManager(users);
     } catch (error) {
-      throw new Error($t1("shu_ju_jie_xi_shi_bai"));
+      throw new Error($t1('shu_ju_jie_xi_shi_bai'));
     }
   }
 }
@@ -220,10 +220,10 @@ abstract class BaseNotification {
 
   getLevelText(): string {
     const levelMap: Record<NotificationLevel, string> = {
-      '信息': $t1("yi_ban_xin_xi"),
-      '警告': $t1("jing_gao_ti_shi"),
-      '错误': $t1("cuo_wu_xin_xi"),
-      '成功': $t1("cheng_gong_ti_shi")
+      '信息': $t1('yi_ban_xin_xi'),
+      '警告': $t1('jing_gao_ti_shi'),
+      '错误': $t1('cuo_wu_xin_xi'),
+      '成功': $t1('cheng_gong_ti_shi')
     };
 
     return levelMap[this.level];
@@ -232,10 +232,9 @@ abstract class BaseNotification {
 
 class SystemNotification extends BaseNotification {
   constructor(
-  private message: string,
-  private module: SystemModule,
-  level: NotificationLevel = $t1("xin_xi"))
-  {
+    private message: string,
+    private module: SystemModule,
+    level: NotificationLevel = $t1('xin_xi')) {
     super(level);
   }
 
@@ -257,11 +256,10 @@ class SystemNotification extends BaseNotification {
 
 class UserNotification extends BaseNotification {
   constructor(
-  private title: string,
-  private content: string,
-  private targetUser: string,
-  level: NotificationLevel = $t1("xin_xi"))
-  {
+    private title: string,
+    private content: string,
+    private targetUser: string,
+    level: NotificationLevel = $t1('xin_xi')) {
     super(level);
   }
 
@@ -295,10 +293,10 @@ function logExecutionTime(target: any, propertyName: string, descriptor?: Proper
 // 9. 工具函数和类型守卫
 function isUser(obj: any): obj is User {
   return obj &&
-  typeof obj.id === 'number' &&
-  typeof obj.name === 'string' &&
-  typeof obj.email === 'string' &&
-  [$t1("guan_li_yuan"), $t1("bian_ji_zhe"), $t1("cha_kan_zhe")].includes(obj.role);
+    typeof obj.id === 'number' &&
+    typeof obj.name === 'string' &&
+    typeof obj.email === 'string' &&
+    [$t1('guan_li_yuan'), $t1('bian_ji_zhe'), $t1('cha_kan_zhe')].includes(obj.role);
 }
 
 function formatMessage(template: string, params: Record<string, string | number>): string {
@@ -319,18 +317,18 @@ async function fetchUserData(userId: number): Promise<ApiResponse<User>> {
 
     const user: User = {
       id: userId,
-      name: $t1("ce_shi_yong_hu"),
+      name: $t1('ce_shi_yong_hu'),
       email: 'test@example.com',
-      role: $t1("pu_tong_yong_hu"),
-      status: $t1("zai_xian"),
+      role: $t1('pu_tong_yong_hu'),
+      status: $t1('zai_xian'),
       permissions: [
-      { action: $t1("cha_kan"), resource: $t1("ge_ren_zi_liao"), description: $t1("cha_kan_ge_ren_ji_ben_xin_xi") }]
+        { action: $t1('cha_kan'), resource: $t1('ge_ren_zi_liao'), description: $t1('cha_kan_ge_ren_ji_ben_xin_xi') }]
 
     };
 
-    return createResponse(user, true, $t1("yong_hu_shu_ju_huo_qu_cheng_gong"));
+    return createResponse(user, true, $t1('yong_hu_shu_ju_huo_qu_cheng_gong'));
   } catch (error) {
-    return createResponse(null as any, false, $t1("yong_hu_shu_ju_huo_qu_shi_bai"));
+    return createResponse(null as any, false, $t1('yong_hu_shu_ju_huo_qu_shi_bai'));
   }
 }
 
@@ -341,7 +339,7 @@ class DataProcessor {
     // 模拟数据处理
     await new Promise((resolve) => setTimeout(resolve, 500));
 
-    const processedCount = users.filter((user) => user.status === $t1("zai_xian")).length;
+    const processedCount = users.filter((user) => user.status === $t1('zai_xian')).length;
     return `${$t1('pi_liang_chu_li_wan_cheng')}，${$t1('gong_chu_li')} ${processedCount} ${$t1('ge_zai_xian_yong_hu')}`;
   }
 }
@@ -367,7 +365,8 @@ export {
   isUser,
   formatMessage,
   fetchUserData,
-  DataProcessor };
+  DataProcessor
+};
 
 
 // 默认导出
@@ -401,7 +400,7 @@ export default class ApplicationCore {
 
   getRecentNotifications(count: number = 5): string[] {
     return this.notifications.
-    slice(-count).
-    map((notification) => notification.getDisplayMessage());
+      slice(-count).
+      map((notification) => notification.getDisplayMessage());
   }
 }

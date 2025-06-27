@@ -35,6 +35,7 @@
   },
   "replacement": {
     "functionName": "$t1",
+    "quoteType": "single",
     "autoImport": {
       "enabled": true,
       "insertPosition": "afterImports",
