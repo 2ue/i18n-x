@@ -295,6 +295,85 @@ export async function scanAndReplaceAll(): Promise<void> {
             expr &&
             t.isExpression(expr)
           ) {
+            // 特殊处理字符串字面量表达式，如 `标题：${'中文标题'}`
+            if (t.isStringLiteral(expr) && containsChinese(expr.value)) {
+              const exprValue = expr.value;
+              const exprKey = createI18nKey(exprValue);
+              const exprCallExpression = createI18nCallExpression(functionName, exprKey, quoteType);
+
+              // 检查第一个 quasi 是否包含中文
+              if (containsChinese(firstQuasi.value.raw) && firstQuasi.value.raw.trim() !== '') {
+                const firstKey = createI18nKey(firstQuasi.value.raw);
+                const firstCallExpression = createI18nCallExpression(
+                  functionName,
+                  firstKey,
+                  quoteType
+                );
+
+                // 如果第二个 quasi 也包含中文
+                if (containsChinese(secondQuasi.value.raw) && secondQuasi.value.raw.trim() !== '') {
+                  const secondKey = createI18nKey(secondQuasi.value.raw);
+                  const secondCallExpression = createI18nCallExpression(
+                    functionName,
+                    secondKey,
+                    quoteType
+                  );
+
+                  // 创建一个表达式拼接：$t('key1') + $t('exprKey') + $t('key2')
+                  const result1 = t.binaryExpression('+', firstCallExpression, exprCallExpression);
+                  const result = t.binaryExpression('+', result1, secondCallExpression);
+
+                  path.replaceWith(result);
+                  hasReplacement = true;
+                  fileReplacements++;
+                  Logger.verbose(
+                    `替换模板字符串中的中文字符串和前后缀: \`${firstQuasi.value.raw}\${${exprValue}}${secondQuasi.value.raw}\``
+                  );
+                } else {
+                  // 创建一个表达式拼接：$t('key1') + $t('exprKey')
+                  const result = t.binaryExpression('+', firstCallExpression, exprCallExpression);
+
+                  path.replaceWith(result);
+                  hasReplacement = true;
+                  fileReplacements++;
+                  Logger.verbose(
+                    `替换模板字符串中的中文字符串和前缀: \`${firstQuasi.value.raw}\${${exprValue}}\``
+                  );
+                }
+              }
+              // 检查第二个 quasi 是否包含中文，第一个 quasi 是否为空或不包含中文
+              else if (
+                containsChinese(secondQuasi.value.raw) &&
+                secondQuasi.value.raw.trim() !== ''
+              ) {
+                const secondKey = createI18nKey(secondQuasi.value.raw);
+                const secondCallExpression = createI18nCallExpression(
+                  functionName,
+                  secondKey,
+                  quoteType
+                );
+
+                // 创建一个表达式拼接：$t('exprKey') + $t('key2')
+                const result = t.binaryExpression('+', exprCallExpression, secondCallExpression);
+
+                path.replaceWith(result);
+                hasReplacement = true;
+                fileReplacements++;
+                Logger.verbose(
+                  `替换模板字符串中的中文字符串和后缀: \`\${${exprValue}}${secondQuasi.value.raw}\``
+                );
+              } else {
+                // 如果前后缀都不包含中文，只替换表达式部分
+                path.replaceWith(exprCallExpression);
+                hasReplacement = true;
+                fileReplacements++;
+                Logger.verbose(`替换模板字符串中的中文字符串: \`\${${exprValue}}\``);
+              }
+
+              // 已经处理过了，不需要继续下面的处理
+              return;
+            }
+
             // 检查第一个 quasi 是否包含中文，第二个 quasi 是否为空或不包含中文
             if (containsChinese(firstQuasi.value.raw) && firstQuasi.value.raw.trim() !== '') {
               const chineseText = firstQuasi.value.raw;
@@ -475,7 +554,14 @@ export async function scanAndReplaceAll(): Promise<void> {
               if (path.node.expressions && i < path.node.expressions.length) {
                 const expr = path.node.expressions[i];
                 if (expr) {
-                  parts.push(expr);
+                  // 特殊处理字符串字面量表达式
+                  if (t.isStringLiteral(expr) && containsChinese(expr.value)) {
+                    const key = createI18nKey(expr.value);
+                    const callExpression = createI18nCallExpression(functionName, key, quoteType);
+                    parts.push(callExpression);
+                  } else {
+                    parts.push(expr);
+                  }
                 }
               }
             }
