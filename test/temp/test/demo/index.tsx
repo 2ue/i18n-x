@@ -19,7 +19,7 @@ export function Button() {
 export function Panel() {
   return (
     <section>
-      <h1>{`标题：${$t1('zhong_wen_biao_ti')}`}</h1>
+      <h1>{$t1('biao_ti_2ouh9c') + '中文标题'}</h1>
       <p>{$t1('nei_rong_xiang_qing')}</p>
       {/* 注释：不应提取 */}
       <footer>{[$t1('que_ding'), $t1('qu_xiao')].map((txt) => <span key={txt}>{txt}</span>)}</footer>

@@ -151,7 +151,7 @@ const pathString = $t1('wen_jian_lu_jing_yong_hu_wen_dang');
 // 14. 数值和字符串混合
 const priceMessage = $t1('shang_pin_jia_ge') + 99.99 + $t1('yuan');
 const countMessage = $t1('gong_you') + 100 + $t1('ge_shang_pin');
-const percentMessage = $t1('wan_cheng_du') + 80 + '%';
+const percentMessage = $t1('wan_cheng_du') + 80;
 
 module.exports = {
   messages,

@@ -392,7 +392,7 @@ export default class ApplicationCore {
 
   addNotification(notification: BaseNotification): void {
     this.notifications.push(notification);
-    console.log(`新通知: ${notification.getDisplayMessage()}`);
+    console.log($t1('xin_tong_zhi') + notification.getDisplayMessage());
   }
 
   getUserManager(): UserManager {

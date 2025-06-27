@@ -42,7 +42,7 @@ export function AttributeComponent() {
 }
 
 // 3. 动态文本节点场景
-export function DynamicTextComponent({ userName = '访客', formType = '表单' }) {
+export function DynamicTextComponent({ userName = $t1('fang_ke'), formType = $t1('biao_dan') }) {
   const [count, setCount] = useState(0);
   const status = $t1('zai_xian');
 
@@ -53,12 +53,12 @@ export function DynamicTextComponent({ userName = '访客', formType = '表单' 
       <p>{$t1('dang_qian_zhuang_tai')}{status}</p>
       
       {/* 模板字符串文本节点 */}
-      <div>{$t1('yong_hu_lei_xing')}{`${formType}管理员`}</div>
-      <span>{`计数器：${count}次`}</span>
+      <div>{$t1('yong_hu_lei_xing')}{formType + $t1('guan_li_yuan')}</div>
+      <span>{$t1('ji_shu_qi') + count + $t1('ci')}</span>
       
       {/* 复杂表达式 */}
       <p>
-        {userName === '访客' ? $t1('qing_xian_deng_lu') : `欢迎回来，${userName}`}
+        {userName === '访客' ? $t1('qing_xian_deng_lu') : $t1('huan_ying_hui_lai') + userName}
       </p>
       
       {/* 多层嵌套 */}
@@ -66,7 +66,7 @@ export function DynamicTextComponent({ userName = '访客', formType = '表单' 
         <h3>{$t1('tong_ji_xin_xi')}</h3>
         <ul>
           <li>{$t1('zong_fang_wen_liang')}{count + 100}</li>
-          <li>{$t1('zai_xian_yong_hu')}{`${count}人`}</li>
+          <li>{$t1('zai_xian_yong_hu')}{count + $t1('ren')}</li>
           <li>{$t1('xi_tong_zhuang_tai')}{$t1('yun_xing_zheng_chang')}</li>
         </ul>
       </section>
@@ -79,7 +79,7 @@ export function DynamicTextComponent({ userName = '访客', formType = '表单' 
 }
 
 // 4. 条件渲染和三元表达式
-export function ConditionalComponent({ isLoggedIn = false, userRole = '普通用户' }) {
+export function ConditionalComponent({ isLoggedIn = false, userRole = $t1('pu_tong_yong_hu') }) {
   const [showDetails, setShowDetails] = useState(false);
 
   return (
@@ -132,7 +132,7 @@ export function ListComponent() {
   { id: 3, name: $t1('wang_wu'), role: $t1('cha_kan_zhe') }];
 
 
-  const [selectedItem, setSelectedItem] = useState('首页');
+  const [selectedItem, setSelectedItem] = useState($t1('shou_ye'));
 
   return (
     <div>
@@ -259,7 +259,7 @@ export function FormComponent() {
 
 // 7. 复杂嵌套组件
 export function ComplexComponent() {
-  const [activeTab, setActiveTab] = useState('基本信息');
+  const [activeTab, setActiveTab] = useState($t1('ji_ben_xin_xi'));
   const tabs = [$t1('ji_ben_xin_xi'), $t1('quan_xian_she_zhi'), $t1('xi_tong_pei_zhi')];
 
   const renderTabContent = () => {
@@ -353,7 +353,7 @@ export function HooksComponent() {
         await new Promise((resolve) => setTimeout(resolve, 1000));
         setData({ message: $t1('shu_ju_jia_zai_cheng_gong'), items: [$t1('xiang_mu'), $t1('xiang_mu_36qaio'), $t1('xiang_mu_36qbb5')] });
       } catch (err) {
-        setError('数据加载失败，请重试');
+        setError($t1('shu_ju_jia_zai_shi_bai_qing_chong_shi'));
       } finally {
         setLoading(false);
       }
