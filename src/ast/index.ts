@@ -273,7 +273,7 @@ export async function scanAndReplaceAll(): Promise<void> {
         }
       },
 
-      // 处理完整的模板字符串
+      // 处理模板字符串
       TemplateLiteral(path: any) {
         // 检查表达式部分是否包含需要替换的字符串字面量
         path.node.expressions.forEach((expr: any, index: number) => {
@@ -290,6 +290,33 @@ export async function scanAndReplaceAll(): Promise<void> {
             Logger.verbose(
               `替换模板字符串表达式中的字符串: "${stringValue}" -> ${functionName}(${quoteType === 'single' ? "'" : '"'}${key}${quoteType === 'single' ? "'" : '"'})`
             );
+          } else if (t.isTemplateLiteral(expr)) {
+            // 处理嵌套的模板字符串
+            expr.expressions.forEach((nestedExpr: any, nestedIndex: number) => {
+              if (t.isStringLiteral(nestedExpr) && containsChinese(nestedExpr.value)) {
+                const stringValue = nestedExpr.value;
+                const key = createI18nKey(stringValue);
+
+                // 替换嵌套模板字符串中的表达式
+                const callExpression = createI18nCallExpression(functionName, key, quoteType);
+                expr.expressions[nestedIndex] = callExpression;
+
+                hasReplacement = true;
+                fileReplacements++;
+                Logger.verbose(
+                  `替换嵌套模板字符串表达式中的字符串: "${stringValue}" -> ${functionName}(${quoteType === 'single' ? "'" : '"'}${key}${quoteType === 'single' ? "'" : '"'})`
+                );
+              }
+            });
+
+            // 处理嵌套模板字符串的 quasis 部分
+            expr.quasis.forEach((quasi: any) => {
+              const raw = quasi.value.raw;
+              if (containsChinese(raw) && raw.trim() !== '') {
+                // 这里我们不直接替换，而是在外层处理
+                Logger.verbose(`检测到嵌套模板字符串中的中文，将在外层处理`);
+              }
+            });
           }
         });
 
@@ -424,10 +451,55 @@ export async function scanAndReplaceAll(): Promise<void> {
             `替换JSX表达式容器中的字符串: "${stringValue}" -> ${functionName}(${quoteType === 'single' ? "'" : '"'}${key}${quoteType === 'single' ? "'" : '"'})`
           );
         }
+        // 处理JSX表达式容器中的模板字符串
+        else if (t.isTemplateLiteral(expression)) {
+          let hasChineseInTemplate = false;
+
+          // 检查模板字符串的静态部分
+          expression.quasis.forEach((quasi: any) => {
+            if (containsChinese(quasi.value.raw)) {
+              hasChineseInTemplate = true;
+            }
+          });
+
+          // 检查模板字符串的表达式部分
+          expression.expressions.forEach((expr: any) => {
+            if (t.isStringLiteral(expr) && containsChinese(expr.value)) {
+              hasChineseInTemplate = true;
+            }
+          });
+
+          // 如果模板字符串包含中文，需要递归处理
+          if (hasChineseInTemplate) {
+            // 这里不直接替换，因为 traverse 会自动访问到这个模板字符串
+            Logger.verbose(`检测到JSX表达式容器中的模板字符串包含中文，将递归处理`);
+          }
+        }
+        // 处理JSX表达式容器中的三元表达式
+        else if (t.isConditionalExpression(expression)) {
+          // 这里不直接替换，因为 traverse 会自动访问到这个三元表达式
+          Logger.verbose(`检测到JSX表达式容器中的三元表达式，将递归处理`);
+        }
       },
 
       // 处理三元表达式中的字符串
       ConditionalExpression(path: any) {
+        // 处理三元表达式的测试部分
+        if (t.isStringLiteral(path.node.test) && containsChinese(path.node.test.value)) {
+          const stringValue = path.node.test.value;
+          const key = createI18nKey(stringValue);
+
+          // 替换三元表达式测试部分的字符串
+          const callExpression = createI18nCallExpression(functionName, key, quoteType);
+          path.node.test = callExpression;
+
+          hasReplacement = true;
+          fileReplacements++;
+          Logger.verbose(
+            `替换三元表达式测试部分的字符串: "${stringValue}" -> ${functionName}(${quoteType === 'single' ? "'" : '"'}${key}${quoteType === 'single' ? "'" : '"'})`
+          );
+        }
+
         // 处理三元表达式的结果部分
         ['consequent', 'alternate'].forEach((key) => {
           const node = path.node[key];
@@ -447,8 +519,16 @@ export async function scanAndReplaceAll(): Promise<void> {
               `替换三元表达式中的字符串: "${stringValue}" -> ${functionName}(${quoteType === 'single' ? "'" : '"'}${i18nKey}${quoteType === 'single' ? "'" : '"'})`
             );
           }
-
-          // 如果是嵌套的三元表达式，不需要特别处理，因为 traverse 会自动递归访问
+          // 处理模板字符串
+          else if (t.isTemplateLiteral(node)) {
+            // 这里不直接替换，因为 traverse 会自动访问到这个模板字符串
+            Logger.verbose(`检测到三元表达式中的模板字符串，将递归处理`);
+          }
+          // 处理嵌套的三元表达式
+          else if (t.isConditionalExpression(node)) {
+            // 这里不直接替换，因为 traverse 会自动访问到这个嵌套的三元表达式
+            Logger.verbose(`检测到嵌套的三元表达式，将递归处理`);
+          }
         });
       },
 
@@ -504,11 +584,60 @@ export async function scanAndReplaceAll(): Promise<void> {
               );
             }
           }
+          // 处理嵌套对象
+          else if (t.isObjectProperty(property) && t.isObjectExpression(property.value)) {
+            // 递归处理嵌套对象的属性
+            property.value.properties.forEach((nestedProp: any) => {
+              if (
+                t.isObjectProperty(nestedProp) &&
+                t.isStringLiteral(nestedProp.value) &&
+                containsChinese(nestedProp.value.value)
+              ) {
+                const stringValue = nestedProp.value.value;
+                const key = createI18nKey(stringValue);
+
+                // 替换嵌套对象中的字符串属性值
+                const callExpression = createI18nCallExpression(functionName, key, quoteType);
+                nestedProp.value = callExpression;
+
+                hasReplacement = true;
+                fileReplacements++;
+                Logger.verbose(
+                  `替换嵌套对象中的字符串: "${stringValue}" -> ${functionName}(${quoteType === 'single' ? "'" : '"'}${key}${quoteType === 'single' ? "'" : '"'})`
+                );
+              }
+            });
+          }
         });
       },
 
       // 处理函数调用参数中的对象表达式
       CallExpression(path: any) {
+        // 处理函数调用的标识符
+        if (
+          t.isIdentifier(path.node.callee) &&
+          ['alert', 'confirm', 'prompt'].includes(path.node.callee.name)
+        ) {
+          // 特殊处理常见的浏览器API
+          path.node.arguments.forEach((arg: any, index: number) => {
+            if (t.isStringLiteral(arg) && containsChinese(arg.value)) {
+              const stringValue = arg.value;
+              const key = createI18nKey(stringValue);
+
+              // 替换浏览器API调用参数
+              const callExpression = createI18nCallExpression(functionName, key, quoteType);
+              path.node.arguments[index] = callExpression;
+
+              hasReplacement = true;
+              fileReplacements++;
+              Logger.verbose(
+                `替换${path.node.callee.name}调用参数: "${stringValue}" -> ${functionName}(${quoteType === 'single' ? "'" : '"'}${key}${quoteType === 'single' ? "'" : '"'})`
+              );
+            }
+          });
+        }
+
+        // 处理所有函数调用参数
         path.node.arguments.forEach((arg: any, index: number) => {
           if (t.isStringLiteral(arg) && containsChinese(arg.value)) {
             // 确保不在类型参数中
@@ -549,6 +678,30 @@ export async function scanAndReplaceAll(): Promise<void> {
                   `替换函数调用对象参数中的字符串: "${stringValue}" -> ${functionName}(${quoteType === 'single' ? "'" : '"'}${key}${quoteType === 'single' ? "'" : '"'})`
                 );
               }
+
+              // 处理嵌套对象
+              if (t.isObjectProperty(prop) && t.isObjectExpression(prop.value)) {
+                prop.value.properties.forEach((nestedProp: any) => {
+                  if (
+                    t.isObjectProperty(nestedProp) &&
+                    t.isStringLiteral(nestedProp.value) &&
+                    containsChinese(nestedProp.value.value)
+                  ) {
+                    const stringValue = nestedProp.value.value;
+                    const key = createI18nKey(stringValue);
+
+                    // 替换嵌套对象中的字符串
+                    const callExpression = createI18nCallExpression(functionName, key, quoteType);
+                    nestedProp.value = callExpression;
+
+                    hasReplacement = true;
+                    fileReplacements++;
+                    Logger.verbose(
+                      `替换函数调用嵌套对象中的字符串: "${stringValue}" -> ${functionName}(${quoteType === 'single' ? "'" : '"'}${key}${quoteType === 'single' ? "'" : '"'})`
+                    );
+                  }
+                });
+              }
             });
           }
         });
@@ -570,6 +723,31 @@ export async function scanAndReplaceAll(): Promise<void> {
           Logger.verbose(
             `替换变量初始值: "${stringValue}" -> ${functionName}(${quoteType === 'single' ? "'" : '"'}${key}${quoteType === 'single' ? "'" : '"'})`
           );
+        }
+        // 处理变量初始值为模板字符串的情况
+        else if (t.isTemplateLiteral(init)) {
+          // 这里不直接替换，因为 traverse 会自动访问到这个模板字符串
+          Logger.verbose(`检测到变量初始值为模板字符串，将递归处理`);
+        }
+        // 处理变量初始值为对象表达式的情况
+        else if (t.isObjectExpression(init)) {
+          // 这里不直接替换，因为 traverse 会自动访问到这个对象表达式
+          Logger.verbose(`检测到变量初始值为对象表达式，将递归处理`);
+        }
+        // 处理变量初始值为数组表达式的情况
+        else if (t.isArrayExpression(init)) {
+          // 这里不直接替换，因为 traverse 会自动访问到这个数组表达式
+          Logger.verbose(`检测到变量初始值为数组表达式，将递归处理`);
+        }
+        // 处理变量初始值为函数调用的情况
+        else if (t.isCallExpression(init)) {
+          // 这里不直接替换，因为 traverse 会自动访问到这个函数调用
+          Logger.verbose(`检测到变量初始值为函数调用，将递归处理`);
+        }
+        // 处理变量初始值为三元表达式的情况
+        else if (t.isConditionalExpression(init)) {
+          // 这里不直接替换，因为 traverse 会自动访问到这个三元表达式
+          Logger.verbose(`检测到变量初始值为三元表达式，将递归处理`);
         }
       },
 
@@ -612,6 +790,29 @@ export async function scanAndReplaceAll(): Promise<void> {
                   `替换数组中对象属性的字符串: "${stringValue}" -> ${functionName}(${quoteType === 'single' ? "'" : '"'}${key}${quoteType === 'single' ? "'" : '"'})`
                 );
               }
+              // 处理数组中嵌套对象的嵌套属性
+              else if (t.isObjectProperty(prop) && t.isObjectExpression(prop.value)) {
+                prop.value.properties.forEach((nestedProp: any) => {
+                  if (
+                    t.isObjectProperty(nestedProp) &&
+                    t.isStringLiteral(nestedProp.value) &&
+                    containsChinese(nestedProp.value.value)
+                  ) {
+                    const stringValue = nestedProp.value.value;
+                    const key = createI18nKey(stringValue);
+
+                    // 替换嵌套对象中的字符串
+                    const callExpression = createI18nCallExpression(functionName, key, quoteType);
+                    nestedProp.value = callExpression;
+
+                    hasReplacement = true;
+                    fileReplacements++;
+                    Logger.verbose(
+                      `替换数组中嵌套对象的字符串: "${stringValue}" -> ${functionName}(${quoteType === 'single' ? "'" : '"'}${key}${quoteType === 'single' ? "'" : '"'})`
+                    );
+                  }
+                });
+              }
             });
           }
         });
@@ -638,6 +839,29 @@ export async function scanAndReplaceAll(): Promise<void> {
             `替换成员表达式赋值: "${stringValue}" -> ${functionName}(${quoteType === 'single' ? "'" : '"'}${key}${quoteType === 'single' ? "'" : '"'})`
           );
         }
+        // 处理形如 obj.prop = `模板字符串` 的情况
+        else if (t.isMemberExpression(path.node.left) && t.isTemplateLiteral(path.node.right)) {
+          // 这里不直接替换，因为 traverse 会自动访问到这个模板字符串
+          Logger.verbose(`检测到成员表达式赋值中的模板字符串，将递归处理`);
+        }
+        // 处理形如 obj.prop = { key: '中文' } 的情况
+        else if (t.isMemberExpression(path.node.left) && t.isObjectExpression(path.node.right)) {
+          // 这里不直接替换，因为 traverse 会自动访问到这个对象表达式
+          Logger.verbose(`检测到成员表达式赋值中的对象表达式，将递归处理`);
+        }
+        // 处理形如 obj.prop = ['中文'] 的情况
+        else if (t.isMemberExpression(path.node.left) && t.isArrayExpression(path.node.right)) {
+          // 这里不直接替换，因为 traverse 会自动访问到这个数组表达式
+          Logger.verbose(`检测到成员表达式赋值中的数组表达式，将递归处理`);
+        }
+        // 处理形如 obj.prop = condition ? '中文1' : '中文2' 的情况
+        else if (
+          t.isMemberExpression(path.node.left) &&
+          t.isConditionalExpression(path.node.right)
+        ) {
+          // 这里不直接替换，因为 traverse 会自动访问到这个三元表达式
+          Logger.verbose(`检测到成员表达式赋值中的三元表达式，将递归处理`);
+        }
       },
 
       // 处理 switch/case 语句中的字符串
@@ -657,6 +881,48 @@ export async function scanAndReplaceAll(): Promise<void> {
             `替换 switch/case 中的字符串: "${stringValue}" -> ${functionName}(${quoteType === 'single' ? "'" : '"'}${key}${quoteType === 'single' ? "'" : '"'})`
           );
         }
+
+        // 处理 case 语句块中的字符串字面量
+        path.node.consequent.forEach((statement: any) => {
+          if (
+            t.isReturnStatement(statement) &&
+            t.isStringLiteral(statement.argument) &&
+            containsChinese(statement.argument.value)
+          ) {
+            const stringValue = statement.argument.value;
+            const key = createI18nKey(stringValue);
+
+            // 替换 return 语句中的字符串
+            const callExpression = createI18nCallExpression(functionName, key, quoteType);
+            statement.argument = callExpression;
+
+            hasReplacement = true;
+            fileReplacements++;
+            Logger.verbose(
+              `替换 case 语句块中 return 语句的字符串: "${stringValue}" -> ${functionName}(${quoteType === 'single' ? "'" : '"'}${key}${quoteType === 'single' ? "'" : '"'})`
+            );
+          }
+
+          // 处理 case 语句块中的表达式语句
+          if (
+            t.isExpressionStatement(statement) &&
+            t.isStringLiteral(statement.expression) &&
+            containsChinese(statement.expression.value)
+          ) {
+            const stringValue = statement.expression.value;
+            const key = createI18nKey(stringValue);
+
+            // 替换表达式语句中的字符串
+            const callExpression = createI18nCallExpression(functionName, key, quoteType);
+            statement.expression = callExpression;
+
+            hasReplacement = true;
+            fileReplacements++;
+            Logger.verbose(
+              `替换 case 语句块中表达式语句的字符串: "${stringValue}" -> ${functionName}(${quoteType === 'single' ? "'" : '"'}${key}${quoteType === 'single' ? "'" : '"'})`
+            );
+          }
+        });
       },
 
       // 处理枚举成员的值
@@ -719,6 +985,29 @@ export async function scanAndReplaceAll(): Promise<void> {
             Logger.verbose(
               `替换函数参数默认值: "${stringValue}" -> ${functionName}(${quoteType === 'single' ? "'" : '"'}${key}${quoteType === 'single' ? "'" : '"'})`
             );
+          }
+        } else if (t.isTemplateLiteral(path.node.right)) {
+          // 处理模板字符串作为默认值的情况
+          let hasChineseInTemplate = false;
+
+          // 检查模板字符串的静态部分
+          path.node.right.quasis.forEach((quasi: any) => {
+            if (containsChinese(quasi.value.raw)) {
+              hasChineseInTemplate = true;
+            }
+          });
+
+          // 检查模板字符串的表达式部分
+          path.node.right.expressions.forEach((expr: any) => {
+            if (t.isStringLiteral(expr) && containsChinese(expr.value)) {
+              hasChineseInTemplate = true;
+            }
+          });
+
+          // 如果模板字符串包含中文，需要递归处理
+          if (hasChineseInTemplate) {
+            // 这里不直接替换，因为 traverse 会自动访问到这个模板字符串
+            Logger.verbose(`检测到函数参数默认值中的模板字符串包含中文，将递归处理`);
           }
         }
       },

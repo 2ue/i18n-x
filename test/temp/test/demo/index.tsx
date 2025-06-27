@@ -22,7 +22,7 @@ export function Panel() {
       <h1>{`标题：${$t1('zhong_wen_biao_ti')}`}</h1>
       <p>{$t1('nei_rong_xiang_qing')}</p>
       {/* 注释：不应提取 */}
-      <footer>{['确定', '取消'].map((txt) => <span key={txt}>{txt}</span>)}</footer>
+      <footer>{[$t1('que_ding'), $t1('qu_xiao')].map((txt) => <span key={txt}>{txt}</span>)}</footer>
     </section>);
 
 }

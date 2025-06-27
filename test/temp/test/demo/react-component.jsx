@@ -13,7 +13,7 @@ import { useTranslation } from 'react-i18next';const { $t1 } = useTranslation();
 
 // 2. JSX 属性场景
 export function AttributeComponent() {
-  const placeholder = '请输入用户名';
+  const placeholder = $t1('qing_shu_ru_yong_hu_ming');
   const disabled = false;
 
   return (
@@ -44,7 +44,7 @@ export function AttributeComponent() {
 // 3. 动态文本节点场景
 export function DynamicTextComponent({ userName = '访客', formType = '表单' }) {
   const [count, setCount] = useState(0);
-  const status = '在线';
+  const status = $t1('zai_xian');
 
   return (
     <div>
@@ -125,11 +125,11 @@ export function ConditionalComponent({ isLoggedIn = false, userRole = '普通用
 
 // 5. 列表渲染和数组操作
 export function ListComponent() {
-  const menuItems = ['首页', '产品', '服务', '关于我们'];
+  const menuItems = [$t1('shou_ye'), $t1('chan_pin'), $t1('fu_wu_3qbnt'), $t1('guan_yu_wo_men')];
   const users = [
-  { id: 1, name: '张三', role: '管理员' },
-  { id: 2, name: '李四', role: '编辑者' },
-  { id: 3, name: '王五', role: '查看者' }];
+  { id: 1, name: $t1('zhang_san'), role: $t1('guan_li_yuan') },
+  { id: 2, name: $t1('li_si'), role: $t1('bian_ji_zhe') },
+  { id: 3, name: $t1('wang_wu'), role: $t1('cha_kan_zhe') }];
 
 
   const [selectedItem, setSelectedItem] = useState('首页');
@@ -182,7 +182,7 @@ export function FormComponent() {
   const [formData, setFormData] = useState({
     username: '',
     email: '',
-    role: '普通用户'
+    role: $t1('pu_tong_yong_hu')
   });
 
   const [errors, setErrors] = useState({});
@@ -192,13 +192,13 @@ export function FormComponent() {
     const newErrors = {};
 
     if (!formData.username) {
-      newErrors.username = '用户名不能为空';
+      newErrors.username = $t1('yong_hu_ming_bu_neng_wei_kong');
     }
 
     if (!formData.email) {
-      newErrors.email = '邮箱不能为空';
+      newErrors.email = $t1('you_xiang_bu_neng_wei_kong');
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = '邮箱格式不正确';
+      newErrors.email = $t1('you_xiang_ge_shi_bu_zheng_que');
     }
 
     setErrors(newErrors);
@@ -250,7 +250,7 @@ export function FormComponent() {
       </div>
       
       <button type="submit">{$t1('ti_jiao_biao_dan')}</button>
-      <button type="reset" onClick={() => setFormData({ username: '', email: '', role: '普通用户' })}>{$t1('zhong_zhi_biao_dan')}
+      <button type="reset" onClick={() => setFormData({ username: '', email: '', role: $t1('pu_tong_yong_hu') })}>{$t1('zhong_zhi_biao_dan')}
 
       </button>
     </form>);
@@ -260,11 +260,11 @@ export function FormComponent() {
 // 7. 复杂嵌套组件
 export function ComplexComponent() {
   const [activeTab, setActiveTab] = useState('基本信息');
-  const tabs = ['基本信息', '权限设置', '系统配置'];
+  const tabs = [$t1('ji_ben_xin_xi'), $t1('quan_xian_she_zhi'), $t1('xi_tong_pei_zhi')];
 
   const renderTabContent = () => {
     switch (activeTab) {
-      case '基本信息':
+      case $t1('ji_ben_xin_xi'):
         return (
           <div>
             <h4>{$t1('ji_ben_xin_xi_pei_zhi')}</h4>
@@ -272,7 +272,7 @@ export function ComplexComponent() {
             <button>{$t1('bao_cun_ji_ben_xin_xi')}</button>
           </div>);
 
-      case '权限设置':
+      case $t1('quan_xian_she_zhi'):
         return (
           <div>
             <h4>{$t1('quan_xian_she_zhi_ye_mian')}</h4>
@@ -286,7 +286,7 @@ export function ComplexComponent() {
             <button>{$t1('bao_cun_quan_xian_she_zhi')}</button>
           </div>);
 
-      case '系统配置':
+      case $t1('xi_tong_pei_zhi'):
         return (
           <div>
             <h4>{$t1('xi_tong_pei_zhi_zhong_xin')}</h4>
@@ -351,7 +351,7 @@ export function HooksComponent() {
       try {
         // 模拟 API 调用
         await new Promise((resolve) => setTimeout(resolve, 1000));
-        setData({ message: '数据加载成功', items: ['项目1', '项目2', '项目3'] });
+        setData({ message: $t1('shu_ju_jia_zai_cheng_gong'), items: [$t1('xiang_mu'), $t1('xiang_mu_36qaio'), $t1('xiang_mu_36qbb5')] });
       } catch (err) {
         setError('数据加载失败，请重试');
       } finally {

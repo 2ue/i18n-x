@@ -115,11 +115,11 @@ interface ApiResponse<T> {
   timestamp: string;
 }
 
-function processDataList<T extends { id: number; }>(
-  items: T[],
-  processor: (item: T) => T,
-  filterFn?: (item: T) => boolean)
-  : T[] {
+function processDataList<T extends {id: number;}>(
+items: T[],
+processor: (item: T) => T,
+filterFn?: (item: T) => boolean)
+: T[] {
   const filtered = filterFn ? items.filter(filterFn) : items;
   return filtered.map(processor);
 }
@@ -131,7 +131,7 @@ class UserManager {
 
   constructor(initialUsers: User[] = []) {
     this.users = initialUsers;
-    console.log(`${this.systemName}${$t1('chu_shi_hua_wan_cheng')}`);
+    console.log(this.systemName + $t1('chu_shi_hua_wan_cheng'));
   }
 
   addUser(user: Omit<User, 'id'>): User {
@@ -149,7 +149,7 @@ class UserManager {
     const userIndex = this.users.findIndex((user) => user.id === id);
 
     if (userIndex === -1) {
-      this.logAction($t1('geng_xin_shi_bai'), `${$t1('yong_hu')}ID ${id} ${$t1('bu_cun_zai')}`);
+      this.logAction($t1('geng_xin_shi_bai'), $t1('yong_hu_1n365z') + id + $t1('bu_cun_zai'));
       return null;
     }
 
@@ -162,7 +162,7 @@ class UserManager {
     const userIndex = this.users.findIndex((user) => user.id === id);
 
     if (userIndex === -1) {
-      this.logAction($t1('shan_chu_shi_bai'), `${$t1('yong_hu')}ID ${id} ${$t1('bu_cun_zai')}`);
+      this.logAction($t1('shan_chu_shi_bai'), $t1('yong_hu_1n365z') + id + $t1('bu_cun_zai'));
       return false;
     }
 
@@ -232,9 +232,10 @@ abstract class BaseNotification {
 
 class SystemNotification extends BaseNotification {
   constructor(
-    private message: string,
-    private module: SystemModule,
-    level: NotificationLevel = $t1('xin_xi')) {
+  private message: string,
+  private module: SystemModule,
+  level: NotificationLevel = $t1('xin_xi'))
+  {
     super(level);
   }
 
@@ -256,15 +257,16 @@ class SystemNotification extends BaseNotification {
 
 class UserNotification extends BaseNotification {
   constructor(
-    private title: string,
-    private content: string,
-    private targetUser: string,
-    level: NotificationLevel = $t1('xin_xi')) {
+  private title: string,
+  private content: string,
+  private targetUser: string,
+  level: NotificationLevel = $t1('xin_xi'))
+  {
     super(level);
   }
 
   getDisplayMessage(): string {
-    return `${this.title} - ${this.content} (${$t1('fa_song_gei')}: ${this.targetUser})`;
+    return this.title + ' - ' + this.content + $t1('fa_song_gei') + this.targetUser + ')';
   }
 
   getIconClass(): string {
@@ -282,7 +284,7 @@ function logExecutionTime(target: any, propertyName: string, descriptor?: Proper
       const result = method.apply(this, args);
       const end = performance.now();
 
-      console.log(`${$t1('fang_fa')} ${propertyName} ${$t1('zhi_xing_shi_jian')}: ${end - start} ${$t1('hao_miao')}`);
+      console.log($t1('fang_fa') + propertyName + $t1('zhi_xing_shi_jian') + (end - start) + $t1('hao_miao'));
       return result;
     };
 
@@ -293,10 +295,10 @@ function logExecutionTime(target: any, propertyName: string, descriptor?: Proper
 // 9. 工具函数和类型守卫
 function isUser(obj: any): obj is User {
   return obj &&
-    typeof obj.id === 'number' &&
-    typeof obj.name === 'string' &&
-    typeof obj.email === 'string' &&
-    [$t1('guan_li_yuan'), $t1('bian_ji_zhe'), $t1('cha_kan_zhe')].includes(obj.role);
+  typeof obj.id === 'number' &&
+  typeof obj.name === 'string' &&
+  typeof obj.email === 'string' &&
+  [$t1('guan_li_yuan'), $t1('bian_ji_zhe'), $t1('cha_kan_zhe')].includes(obj.role);
 }
 
 function formatMessage(template: string, params: Record<string, string | number>): string {
@@ -322,7 +324,7 @@ async function fetchUserData(userId: number): Promise<ApiResponse<User>> {
       role: $t1('pu_tong_yong_hu'),
       status: $t1('zai_xian'),
       permissions: [
-        { action: $t1('cha_kan'), resource: $t1('ge_ren_zi_liao'), description: $t1('cha_kan_ge_ren_ji_ben_xin_xi') }]
+      { action: $t1('cha_kan'), resource: $t1('ge_ren_zi_liao'), description: $t1('cha_kan_ge_ren_ji_ben_xin_xi') }]
 
     };
 
@@ -334,13 +336,13 @@ async function fetchUserData(userId: number): Promise<ApiResponse<User>> {
 
 class DataProcessor {
   async processBatchUsers(users: User[]): Promise<string> {
-    console.log(`${$t1('kai_shi_chu_li')} ${users.length} ${$t1('ge_yong_hu_shu_ju')}`);
+    console.log($t1('kai_shi_chu_li') + users.length + $t1('ge_yong_hu_shu_ju'));
 
     // 模拟数据处理
     await new Promise((resolve) => setTimeout(resolve, 500));
 
     const processedCount = users.filter((user) => user.status === $t1('zai_xian')).length;
-    return `${$t1('pi_liang_chu_li_wan_cheng')}，${$t1('gong_chu_li')} ${processedCount} ${$t1('ge_zai_xian_yong_hu')}`;
+    return $t1('pi_liang_chu_li_wan_cheng_gong_chu_li') + processedCount + $t1('ge_zai_xian_yong_hu');
   }
 }
 
@@ -365,8 +367,7 @@ export {
   isUser,
   formatMessage,
   fetchUserData,
-  DataProcessor
-};
+  DataProcessor };
 
 
 // 默认导出
@@ -376,7 +377,7 @@ export default class ApplicationCore {
 
   constructor() {
     this.userManager = new UserManager();
-    console.log('应用核心模块初始化完成');
+    console.log($t1('ying_yong_he_xin_mo_kuai_chu_shi_hua_wan'));
   }
 
   initializeSystem(): string {
@@ -400,7 +401,7 @@ export default class ApplicationCore {
 
   getRecentNotifications(count: number = 5): string[] {
     return this.notifications.
-      slice(-count).
-      map((notification) => notification.getDisplayMessage());
+    slice(-count).
+    map((notification) => notification.getDisplayMessage());
   }
 }

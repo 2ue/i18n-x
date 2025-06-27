@@ -11,13 +11,13 @@ const englishOnly = 'english only';
 // 2. 模板字符串场景
 const userName = 'John';
 const age = 25;
-const templateBasic = `${$t1('huan_ying_yong_hu')}${userName}`;
-const templateComplex = `${$t1('yong_hu')}${userName}${$t1('nian_ling')}${age}${$t1('sui')}`;
-const templateMultiline = `
-  ${$t1('duo_hang_mu_ban_zi_fu_chuan')}
-  ${$t1('di_er_hang_nei_rong')}：${userName}
-  ${$t1('di_san_hang')}：${$t1('jie_shu')}
-`;
+const templateBasic = $t1('huan_ying_yong_hu') + userName;
+const templateComplex = $t1('yong_hu') + userName + $t1('nian_ling') + age + $t1('sui');
+const templateMultiline = $t1('duo_hang_mu_ban_zi_fu_chuan_di_er_hang') +
+
+userName + $t1('di_san_hang_jie_shu');
+
+
 
 // 3. 三元表达式场景
 const isVip = true;
@@ -46,7 +46,7 @@ function greet(name = $t1('mo_ren_yong_hu'), message = $t1('ni_hao')) {
   return `${message}，${name}！`;
 }
 
-const sayHello = (greeting = $t1('huan_ying')) => `${greeting}${$t1('fang_wen_wo_men_de_wang_zhan')}`;
+const sayHello = (greeting = $t1('huan_ying')) => greeting + $t1('fang_wen_wo_men_de_wang_zhan');
 
 function showAlert(msg) {
   alert($t1('ti_shi') + msg);
@@ -75,14 +75,14 @@ const menuItems = [$t1('shou_ye'), $t1('chan_pin_zhong_xin'), $t1('guan_yu_wo_me
 
 
 const complexArray = [
-{ id: 1, title: $t1('wen_zhang_biao_ti'), content: `${$t1('nei_rong_zhai_yao')}${Math.random()}` },
+{ id: 1, title: $t1('wen_zhang_biao_ti'), content: $t1('nei_rong_zhai_yao') + Math.random() },
 { id: 2, title: $t1('xin_wen_biao_ti'), content: $t1('xin_wen_nei_rong_xiang_qing') }];
 
 
 // 7. 复杂表达式和计算
 const dynamicMessage = $t1('dang_qian_shi_jian') + new Date().toLocaleString('zh-CN');
 const concatenated = $t1('qian_zhui') + userInfo.name + $t1('hou_zhui');
-const calculated = `${$t1('zong_ji')}：${10 + 20}${$t1('yuan')}`;
+const calculated = $t1('zong_ji') + (10 + 20) + $t1('yuan');
 
 // 8. 异步函数和 Promise
 async function fetchUserData() {
@@ -116,7 +116,7 @@ class UserManager {
   }
 
   login() {
-    return `${$t1('yong_hu')}${this.name}${$t1('deng_lu_cheng_gong')}`;
+    return $t1('yong_hu') + this.name + $t1('deng_lu_cheng_gong');
   }
 
   logout() {
@@ -140,7 +140,7 @@ const messages = {
 const buildComplexMessage = (user, action) => {
   const time = new Date().toLocaleString('zh-CN');
   const prefix = action === 'login' ? $t1('deng_lu') : $t1('cao_zuo');
-  return `${time} - ${$t1('yong_hu')}"${user}"${$t1('zhi_xing_le')}${prefix}${$t1('cao_zuo')}`;
+  return time + $t1('yong_hu_438chh') + user + $t1('zhi_xing_le') + prefix + $t1('cao_zuo');
 };
 
 // 13. 转义字符和特殊字符
@@ -149,9 +149,9 @@ const escapedString = $t1('bao_han_huan_hang_fu_he_zhi_biao_fu_de');
 const pathString = $t1('wen_jian_lu_jing_yong_hu_wen_dang');
 
 // 14. 数值和字符串混合
-const priceMessage = `${$t1('shang_pin_jia_ge')}：￥${99.99}${$t1('yuan')}`;
+const priceMessage = $t1('shang_pin_jia_ge') + 99.99 + $t1('yuan');
 const countMessage = $t1('gong_you') + 100 + $t1('ge_shang_pin');
-const percentMessage = `${$t1('wan_cheng_du')}：${80}%`;
+const percentMessage = $t1('wan_cheng_du') + 80 + '%';
 
 module.exports = {
   messages,
