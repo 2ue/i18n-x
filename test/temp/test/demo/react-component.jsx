@@ -204,7 +204,7 @@ export function FormComponent() {
     setErrors(newErrors);
 
     if (Object.keys(newErrors).length === 0) {
-      alert('表单提交成功');
+      alert($t1('biao_dan_ti_jiao_cheng_gong'));
     }
   };
 
