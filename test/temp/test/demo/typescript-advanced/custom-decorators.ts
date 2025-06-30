@@ -332,3 +332,4 @@ async function demonstrateDecorators() {
 
 // 运行示例
 // demonstrateDecorators().catch(console.error);
+

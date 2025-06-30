@@ -1,139 +1,211 @@
 import { Logger } from '../utils/logger';
 
-export interface TranslationTask<T = unknown> {
+export interface QueueTask<T> {
   id: string;
   execute: () => Promise<T>;
-  retryTimes: number;
   maxRetries: number;
   retryDelay: number;
+  currentRetry?: number;
 }
 
+export interface QueueStats {
+  total: number;
+  pending: number;
+  completed: number;
+  failed: number;
+  inProgress: number;
+}
+
+/**
+ * 翻译队列，用于控制并发和重试逻辑
+ */
 export class TranslationQueue {
-  private queue: TranslationTask[] = [];
-  private running: Map<string, Promise<unknown>> = new Map();
-  private completed: Map<string, unknown> = new Map();
-  private failed: Map<string, Error> = new Map();
-  private concurrency: number;
+  private readonly concurrency: number;
+  private tasks: QueueTask<unknown>[] = [];
+  private completedResults: Map<string, unknown> = new Map();
+  private failedTasks: Map<string, Error> = new Map();
+  private stats: QueueStats = {
+    total: 0,
+    pending: 0,
+    completed: 0,
+    failed: 0,
+    inProgress: 0,
+  };
+  private batchDelay: number = 0; // 批次间延迟（毫秒）
+  private isApiLimited: boolean = false; // API限制状态标志
+  private apiLimitResetTime: number = 0; // API限制重置时间
 
   constructor(concurrency: number = 10) {
     this.concurrency = concurrency;
   }
 
   /**
-   * 添加翻译任务到队列
+   * 添加任务到队列
    */
-  addTask<T>(task: Omit<TranslationTask<T>, 'retryTimes'>): void {
-    this.queue.push({
-      ...task,
-      retryTimes: 0,
-    });
+  addTask<T>(task: QueueTask<T>): void {
+    task.currentRetry = 0;
+    this.tasks.push(task as QueueTask<unknown>);
+    this.stats.total++;
+    this.stats.pending++;
   }
 
   /**
-   * 执行所有任务
+   * 设置批次间延迟时间（毫秒）
+   */
+  setBatchDelay(delay: number): void {
+    this.batchDelay = delay;
+  }
+
+  /**
+   * 执行所有任务，返回结果映射
    */
   async executeAll(): Promise<Map<string, unknown>> {
-    Logger.info(`开始执行翻译队列，并发数: ${this.concurrency}，任务总数: ${this.queue.length}`);
+    Logger.info(`开始执行翻译队列，并发数: ${this.concurrency}，任务总数: ${this.stats.total}`);
 
-    while (this.queue.length > 0 || this.running.size > 0) {
-      // 启动新任务直到达到并发限制
-      while (this.running.size < this.concurrency && this.queue.length > 0) {
-        const task = this.queue.shift();
-        if (task) {
-          this.startTask(task);
-        }
-      }
+    this.completedResults.clear();
+    this.failedTasks.clear();
 
-      // 等待至少一个任务完成
-      if (this.running.size > 0) {
-        await Promise.race(Array.from(this.running.values()));
-      }
+    const workers: Promise<void>[] = [];
+
+    // 启动固定数量的worker
+    for (let i = 0; i < Math.min(this.concurrency, this.tasks.length); i++) {
+      workers.push(this.worker());
     }
 
-    Logger.info(`翻译队列执行完成，成功: ${this.completed.size}，失败: ${this.failed.size}`);
+    // 等待所有worker完成
+    await Promise.all(workers);
 
-    if (this.failed.size > 0) {
-      const failedIds = Array.from(this.failed.keys());
-      Logger.warn(`翻译失败的任务: ${failedIds.join(', ')}`);
-    }
-
-    return this.completed;
+    return this.completedResults;
   }
 
   /**
-   * 启动单个任务
+   * 工作线程，负责执行任务队列中的任务
    */
-  private startTask(task: TranslationTask): void {
-    const taskPromise = this.executeTask(task);
-    this.running.set(task.id, taskPromise);
+  private async worker(): Promise<void> {
+    while (this.tasks.length > 0) {
+      // 检查API限制状态
+      if (this.isApiLimited) {
+        const now = Date.now();
+        if (now < this.apiLimitResetTime) {
+          // API处于限制状态，等待重置
+          const waitTime = this.apiLimitResetTime - now;
+          Logger.warn(`API速率限制中，等待 ${Math.ceil(waitTime / 1000)} 秒后继续...`);
+          await this.delay(waitTime);
+          this.isApiLimited = false;
+        }
+      }
 
-    // 处理任务完成的情况
-    void taskPromise
-      .then((result) => {
-        this.completed.set(task.id, result);
+      const task = this.tasks.shift();
+      if (!task) continue;
+
+      this.stats.pending--;
+      this.stats.inProgress++;
+
+      try {
+        // 执行任务
+        const result = await task.execute();
+
+        // 记录成功结果
+        this.completedResults.set(task.id, result);
+        this.stats.completed++;
+        this.stats.inProgress--;
+
         Logger.verbose(`任务 ${task.id} 执行成功`);
-      })
-      .catch((error: Error) => {
-        // 检查是否需要重试
-        if (task.retryTimes < task.maxRetries) {
-          task.retryTimes++;
-          const errorMessage = error.message;
-          Logger.warn(
-            `任务 ${task.id} 执行失败，准备第 ${task.retryTimes} 次重试: ${errorMessage}`
-          );
 
-          // 添加延迟后重新加入队列
-          setTimeout(() => {
-            this.queue.push(task);
-          }, task.retryDelay);
-        } else {
-          this.failed.set(task.id, error);
-          const errorMessage = error.message;
-          Logger.error(`任务 ${task.id} 最终失败，已达到最大重试次数: ${errorMessage}`);
+        // 添加批次间延迟，避免API限制
+        if (this.batchDelay > 0) {
+          await this.delay(this.batchDelay);
         }
-      })
-      .finally(() => {
-        this.running.delete(task.id);
-      });
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+
+        // 检测API限制错误
+        if (this.isApiLimitError(errorMessage)) {
+          this.handleApiLimitError();
+
+          // 放回队列头部，等待API限制解除后重试
+          this.tasks.unshift(task);
+          this.stats.pending++;
+        } else {
+          Logger.error(`任务 ${task.id} 执行失败: ${errorMessage}`);
+
+          // 检查是否还可以重试
+          if ((task.currentRetry ?? 0) < task.maxRetries) {
+            task.currentRetry = (task.currentRetry ?? 0) + 1;
+            Logger.warn(
+              `任务 ${task.id} 执行失败，准备第 ${task.currentRetry} 次重试: ${errorMessage}`
+            );
+
+            // 等待重试延迟时间
+            await this.delay(task.retryDelay);
+
+            // 放回队列末尾，等待重试
+            this.tasks.push(task);
+            this.stats.pending++;
+          } else {
+            // 重试次数用尽，记录最终失败
+            const finalError = error instanceof Error ? error : new Error(String(error));
+            this.failedTasks.set(task.id, finalError);
+            this.stats.failed++;
+          }
+        }
+
+        this.stats.inProgress--;
+      }
+    }
   }
 
   /**
-   * 执行单个任务
+   * 检测是否为API限制错误
    */
-  private executeTask(task: TranslationTask): Promise<unknown> {
-    return task.execute();
+  private isApiLimitError(errorMessage: string): boolean {
+    // 根据错误消息判断是否为API限制错误
+    return (
+      errorMessage.includes('API错误: 54003') ||
+      errorMessage.includes('Invalid Access Limit') ||
+      errorMessage.includes('rate limit') ||
+      errorMessage.includes('too many requests')
+    );
   }
 
   /**
-   * 获取执行结果统计
+   * 处理API限制错误
    */
-  getStats(): {
-    total: number;
-    completed: number;
-    failed: number;
-    running: number;
-    pending: number;
-  } {
-    return {
-      total: this.completed.size + this.failed.size + this.queue.length + this.running.size,
-      completed: this.completed.size,
-      failed: this.failed.size,
-      running: this.running.size,
-      pending: this.queue.length,
-    };
+  private handleApiLimitError(): void {
+    // API限制，设置标志并计算恢复时间
+    this.isApiLimited = true;
+    // 设置60秒的API限制冷却时间
+    const cooldownTime = 60 * 1000;
+    this.apiLimitResetTime = Date.now() + cooldownTime;
+
+    Logger.warn(`检测到API速率限制，将暂停 ${cooldownTime / 1000} 秒后继续`);
   }
 
   /**
-   * 获取失败的任务
+   * 获取已完成任务的结果
+   */
+  getCompletedResults(): Map<string, unknown> {
+    return this.completedResults;
+  }
+
+  /**
+   * 获取失败任务的错误信息
    */
   getFailedTasks(): Map<string, Error> {
-    return this.failed;
+    return this.failedTasks;
   }
 
   /**
-   * 获取成功的结果
+   * 获取队列统计信息
    */
-  getResults(): Map<string, unknown> {
-    return this.completed;
+  getStats(): QueueStats {
+    return { ...this.stats };
+  }
+
+  /**
+   * Promise延迟等待
+   */
+  private delay(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 }

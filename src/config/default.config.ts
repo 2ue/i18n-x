@@ -68,10 +68,10 @@ export const defaultConfig: I18nConfig = {
     provider: 'baidu', // 默认使用百度翻译
     defaultSourceLang: 'zh', // 默认源语言：中文
     defaultTargetLang: 'en', // 默认目标语言：英文
-    concurrency: 10, // 默认并发数：10
+    concurrency: 5, // 默认并发数：5 (降低并发数避免API限制)
     retryTimes: 3, // 默认重试次数：3次（不包括第一次）
-    retryDelay: 0, // 默认重试延迟：1秒
-    batchDelay: 0, // 默认批次延迟：1秒
+    retryDelay: 1000, // 默认重试延迟：1秒
+    batchDelay: 500, // 默认批次延迟：0.5秒
     baidu: {
       appid: '', // 需要用户配置
       key: '', // 需要用户配置

@@ -38,3 +38,4 @@ function greet(name = $t1('fang_ke')) {
 
 // 导出字符串常量
 export const DEFAULT_MESSAGE = $t1('mo_ren_xiao_xi');
+

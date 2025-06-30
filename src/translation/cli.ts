@@ -2,6 +2,7 @@ import { ConfigManager, loadConfig } from '../config';
 import { TranslationManager } from './manager';
 import { readFile, fileExists } from '../utils/fs';
 import { Logger } from '../utils/logger';
+import * as path from 'path';
 
 interface TranslateOptions {
   config: string;
@@ -11,6 +12,7 @@ interface TranslateOptions {
   json?: string;
   batch?: boolean;
   test?: boolean;
+  incremental?: boolean; // 增量翻译选项，默认启用
 }
 
 export async function translateCommand(options: TranslateOptions): Promise<void> {
@@ -29,10 +31,10 @@ export async function translateCommand(options: TranslateOptions): Promise<void>
     provider: config.translation.provider ?? 'baidu',
     defaultSourceLang: config.translation.defaultSourceLang ?? 'zh',
     defaultTargetLang: config.translation.defaultTargetLang ?? 'en',
-    concurrency: config.translation.concurrency ?? 10,
+    concurrency: config.translation.concurrency ?? 5,
     retryTimes: config.translation.retryTimes ?? 3,
-    retryDelay: config.translation.retryDelay ?? 0,
-    batchDelay: config.translation.batchDelay ?? 0,
+    retryDelay: config.translation.retryDelay ?? 1000,
+    batchDelay: config.translation.batchDelay ?? 500,
     baidu:
       config.translation.baidu?.appid && config.translation.baidu?.key
         ? {
@@ -61,18 +63,57 @@ export async function translateCommand(options: TranslateOptions): Promise<void>
   const from = options.from ?? defaultSourceLang;
   const to = options.to ?? defaultTargetLang;
 
+  // 增量翻译模式，默认启用
+  const incrementalMode = options.incremental !== false;
+
   try {
     // 根据不同的选项执行相应的翻译操作
     if (options.test && options.input) {
       await handleTranslateTest(translationManager, options.input, from, to);
     } else if (options.json) {
-      await handleTranslateJsonFile(translationManager, options.json, from, to);
+      await handleTranslateJsonFile(translationManager, options.json, from, to, incrementalMode);
     } else if (options.batch) {
-      await handleTranslateBatchFiles(translationManager, from, to);
+      await handleTranslateBatchFiles(translationManager, from, to, incrementalMode);
     } else if (options.input) {
       await handleTranslateInput(translationManager, options.input, from, to);
     } else {
-      showUsageHelp();
+      // 没有传递任何参数时，使用默认行为：读取配置的outputDir下的默认语言文件
+      const outputDir = config.outputDir ?? 'locales';
+      const sourceLocale = config.locale ?? 'zh-CN';
+      const targetLocale = config.fallbackLocale ?? 'en-US';
+
+      Logger.info(
+        `未指定翻译内容，将从 ${outputDir} 目录读取 ${sourceLocale}.json 文件并翻译成 ${targetLocale}`,
+        'normal'
+      );
+
+      const sourceLang = sourceLocale.split('-')[0] || 'zh'; // 提取语言代码，如zh-CN -> zh
+      const targetLang = targetLocale.split('-')[0] || 'en'; // 提取语言代码，如en-US -> en
+
+      try {
+        const sourcePath = path.join(outputDir, `${sourceLocale}.json`);
+        if (!fileExists(sourcePath)) {
+          throw new Error(`源语言文件不存在: ${sourcePath}，请先运行生成命令创建源语言文件`);
+        }
+
+        Logger.info(`📖 从源语言文件读取: ${sourcePath}`);
+
+        const { outputPath, totalCount, successCount } =
+          await translationManager.translateLanguageFile(
+            sourcePath,
+            targetLocale,
+            sourceLang,
+            targetLang,
+            incrementalMode
+          );
+
+        Logger.success(`翻译完成，结果保存到: ${outputPath}`, 'normal');
+        Logger.info(`成功翻译: ${successCount}/${totalCount}`, 'normal');
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        Logger.error(`翻译失败: ${errorMessage}`, 'minimal');
+        showUsageHelp();
+      }
     }
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
@@ -105,13 +146,20 @@ async function handleTranslateJsonFile(
   manager: TranslationManager,
   jsonPath: string,
   from: string,
-  to: string
+  to: string,
+  incremental: boolean = true
 ): Promise<void> {
-  const { outputPath, totalCount, successCount } = await manager.translateJsonFile(
+  // 推导目标语言的Locale
+  const targetLocale = ConfigManager.get().fallbackLocale || 'en-US';
+
+  const { outputPath, totalCount, successCount } = await manager.translateLanguageFile(
     jsonPath,
+    targetLocale,
     from,
-    to
+    to,
+    incremental
   );
+
   Logger.success(`翻译完成，结果保存到: ${outputPath}`, 'normal');
   Logger.info(`成功翻译: ${successCount}/${totalCount}`, 'normal');
 }
@@ -122,17 +170,27 @@ async function handleTranslateJsonFile(
 async function handleTranslateBatchFiles(
   manager: TranslationManager,
   from: string,
-  to: string
+  to: string,
+  incremental: boolean = true
 ): Promise<void> {
   const config = ConfigManager.get();
   const outputDir = config.outputDir ?? './locales';
   const sourceLocale = config.locale ?? from;
+  const targetLocale = config.fallbackLocale ?? 'en-US';
 
-  const { outputPath, totalCount, successCount } = await manager.translateLanguageFiles(
-    outputDir,
-    sourceLocale,
+  const sourcePath = path.join(outputDir, `${sourceLocale}.json`);
+  if (!fileExists(sourcePath)) {
+    throw new Error(`源语言文件不存在: ${sourcePath}，请先运行生成命令创建源语言文件`);
+  }
+
+  Logger.info(`📖 从源语言文件读取: ${sourcePath}`);
+
+  const { outputPath, totalCount, successCount } = await manager.translateLanguageFile(
+    sourcePath,
+    targetLocale,
     from,
-    to
+    to,
+    incremental
   );
 
   Logger.success(`批量翻译完成，结果保存到: ${outputPath}`, 'normal');
@@ -179,4 +237,5 @@ function showUsageHelp(): void {
   Logger.info('   使用 -j 指定JSON文件路径', 'normal');
   Logger.info('   使用 --batch 批量翻译语言文件', 'normal');
   Logger.info('   使用 --test -i "文本" 测试翻译', 'normal');
+  Logger.info('   使用 --incremental=false 禁用增量翻译模式', 'normal');
 }

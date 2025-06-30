@@ -51,3 +51,4 @@ const percentMessage = $t1('wan_cheng_du') + 80;
 
 // 多层嵌套的表达式
 const deepNested = $t1('ceng_ji') + ($t1('ceng_ji_i854yw') + ($t1('ceng_ji_i84w4p') + name));
+

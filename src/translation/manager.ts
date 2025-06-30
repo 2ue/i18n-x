@@ -3,15 +3,21 @@ import { BaiduTranslationProvider } from './providers/baidu';
 import { Logger } from '../utils/logger';
 import { TranslationQueue } from './queue';
 import { readJson, writeJson, fileExists } from '../utils/fs';
+import { TranslationCache } from './cache';
 import * as path from 'path';
 
 export class TranslationManager {
   private providers: Map<string, TranslationProvider> = new Map();
   private config: TranslationConfig;
+  private cache: TranslationCache;
 
   constructor(config: TranslationConfig) {
     this.config = config;
     Logger.verbose(`初始化翻译管理器，提供者: ${config.provider}，并发数: ${config.concurrency}`);
+
+    // 初始化缓存
+    this.cache = TranslationCache.getInstance();
+
     this.initializeProviders();
   }
 
@@ -55,11 +61,29 @@ export class TranslationManager {
     }
 
     const providerName = provider.name ?? this.config.provider;
+
+    // 先检查缓存是否存在
+    const cachedResult = this.cache.get(text, from, to, providerName);
+    if (cachedResult) {
+      Logger.info(`[缓存] 翻译: "${text}" -> "${cachedResult.translatedText}"`);
+      return {
+        originalText: cachedResult.originalText,
+        translatedText: cachedResult.translatedText,
+        sourceLanguage: cachedResult.sourceLanguage,
+        targetLanguage: cachedResult.targetLanguage,
+        provider: cachedResult.provider,
+      };
+    }
+
     Logger.verbose(`使用 ${providerName} 翻译: "${text}" (${from} -> ${to})`);
 
     try {
       const result = await provider.translate(text, from, to);
       Logger.info(`翻译完成: "${text}" -> "${result.translatedText}"`);
+
+      // 翻译完成后存入缓存
+      this.cache.set(text, result.translatedText, from, to, providerName);
+
       return result;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
@@ -69,7 +93,7 @@ export class TranslationManager {
   }
 
   /**
-   * 批量翻译文本数组（使用并发控制和重试机制）
+   * 批量翻译文本数组
    */
   async translateBatch(
     texts: string[],
@@ -80,27 +104,78 @@ export class TranslationManager {
       throw new Error('翻译服务未启用');
     }
 
-    const concurrency = this.config.concurrency ?? 10;
+    // 优化API调用参数
+    const concurrency = Math.min(this.config.concurrency ?? 5, 5); // 限制最大并发为5
     const retryTimes = this.config.retryTimes ?? 3;
-    const retryDelay = this.config.retryDelay ?? 0;
+    const retryDelay = Math.max(this.config.retryDelay ?? 1000, 1000); // 至少1秒的重试延迟
+    const batchDelay = Math.max(this.config.batchDelay ?? 500, 500); // 至少0.5秒的批次延迟
 
     Logger.info(
-      `开始批量翻译，文本数量: ${texts.length}，并发数: ${concurrency}，重试次数: ${retryTimes}`, 'normal'
+      `开始批量翻译，文本数量: ${texts.length}，并发数: ${concurrency}，重试次数: ${retryTimes}`,
+      'normal'
     );
     Logger.verbose(`翻译方向: ${from} -> ${to}`);
 
+    // 检查哪些文本已经在缓存中
+    const providerName = this.config.provider;
+    const textsToTranslate: string[] = [];
+    const cachedResults: Map<string, TranslationResult> = new Map();
+
+    for (let i = 0; i < texts.length; i++) {
+      const text = texts[i];
+      if (!text) continue;
+
+      const cachedResult = this.cache.get(text, from || 'auto', to || 'en', providerName);
+
+      if (cachedResult) {
+        // 使用缓存结果
+        Logger.verbose(`[缓存] 文本 ${i + 1}/${texts.length}: "${text}"`);
+        cachedResults.set(`translate_${i}`, {
+          originalText: cachedResult.originalText,
+          translatedText: cachedResult.translatedText,
+          sourceLanguage: cachedResult.sourceLanguage,
+          targetLanguage: cachedResult.targetLanguage,
+          provider: cachedResult.provider,
+        });
+      } else {
+        // 需要翻译
+        textsToTranslate.push(text);
+      }
+    }
+
     // 创建翻译队列
     const queue = new TranslationQueue(concurrency);
+    queue.setBatchDelay(batchDelay);
 
-    // 添加翻译任务到队列
-    texts.forEach((text, index) => {
-      queue.addTask({
-        id: `translate_${index}`,
-        execute: () => this.translate(text, from, to),
-        maxRetries: retryTimes,
-        retryDelay: retryDelay,
-      });
-    });
+    // 添加需要翻译的文本到队列
+    for (let i = 0; i < texts.length; i++) {
+      if (!cachedResults.has(`translate_${i}`)) {
+        const text = texts[i];
+        if (!text) continue;
+
+        queue.addTask({
+          id: `translate_${i}`,
+          execute: () => this.translate(text, from || 'auto', to || 'en'),
+          maxRetries: retryTimes,
+          retryDelay: retryDelay,
+        });
+      }
+    }
+
+    Logger.info(`需要翻译的文本: ${textsToTranslate.length}，从缓存加载: ${cachedResults.size}`);
+
+    // 如果所有文本都在缓存中，则直接返回
+    if (textsToTranslate.length === 0) {
+      Logger.info(`所有文本都从缓存加载，跳过API调用`);
+      const results: TranslationResult[] = [];
+      for (let i = 0; i < texts.length; i++) {
+        const result = cachedResults.get(`translate_${i}`);
+        if (result) {
+          results.push(result);
+        }
+      }
+      return results;
+    }
 
     // 执行所有任务
     const completedResults = await queue.executeAll();
@@ -111,6 +186,17 @@ export class TranslationManager {
 
     for (let i = 0; i < texts.length; i++) {
       const taskId = `translate_${i}`;
+
+      // 如果是缓存结果
+      if (cachedResults.has(taskId)) {
+        const result = cachedResults.get(taskId);
+        if (result) {
+          results.push(result);
+        }
+        continue;
+      }
+
+      // 如果是API请求结果
       const result = completedResults.get(taskId) as TranslationResult | undefined;
 
       if (result) {
@@ -125,8 +211,8 @@ export class TranslationManager {
           results.push({
             originalText: currentText,
             translatedText: currentText, // 失败时返回原文
-            sourceLanguage: from,
-            targetLanguage: to,
+            sourceLanguage: from || 'auto',
+            targetLanguage: to || 'en',
             provider: this.config.provider,
           });
         }
@@ -135,87 +221,130 @@ export class TranslationManager {
 
     const stats = queue.getStats();
     Logger.info(
-      `批量翻译完成，成功: ${stats.completed}，失败: ${stats.failed}，总计: ${texts.length}`
+      `批量翻译完成，成功: ${stats.completed}，失败: ${stats.failed}，总计: ${texts.length}，使用缓存: ${cachedResults.size}`
     );
 
     return results;
   }
 
   /**
-   * 翻译JSON文件
+   * 翻译语言文件（JSON）
+   * 此方法整合了原来的translateJsonFile和translateLanguageFiles
+   * 支持增量翻译和实时写入结果
    */
-  async translateJsonFile(
-    jsonPath: string,
+  async translateLanguageFile(
+    sourcePath: string,
+    targetLocale: string,
     from: string = this.config.defaultSourceLang ?? 'auto',
-    to: string = this.config.defaultTargetLang ?? 'en'
+    to: string = this.config.defaultTargetLang ?? 'en',
+    incrementalMode: boolean = true // 是否增量翻译模式
   ): Promise<{ outputPath: string; totalCount: number; successCount: number }> {
-    if (!fileExists(jsonPath)) {
-      throw new Error(`JSON文件不存在: ${jsonPath}`);
+    if (!fileExists(sourcePath)) {
+      throw new Error(`源语言文件不存在: ${sourcePath}`);
     }
 
-    Logger.info(`📖 读取JSON文件: ${jsonPath}`);
+    Logger.info(`📖 读取JSON文件: ${sourcePath}`);
 
-    const jsonContent = await readJson(jsonPath);
-    const texts = Object.values(jsonContent as Record<string, unknown>).filter(
-      (v): v is string => typeof v === 'string'
-    );
+    // 解析源文件
+    const sourceContent = await readJson<Record<string, unknown>>(sourcePath);
 
-    if (texts.length === 0) {
-      throw new Error('JSON文件中没有找到可翻译的字符串值');
-    }
+    // 生成正确的目标文件名，使用targetLocale，如"en-US.json"而不是"zh-CN.en.json"
+    const outputPath = path.join(path.dirname(sourcePath), `${targetLocale}.json`);
 
-    Logger.info(`🔄 开始翻译 ${texts.length} 个文本条目...`);
-    const results = await this.translateBatch(texts, from, to);
-
-    // 创建翻译后的JSON对象
-    const translatedJson = {} as Record<string, unknown>;
-    const originalKeys = Object.keys(jsonContent as Record<string, unknown>);
-    let resultIndex = 0;
-
-    originalKeys.forEach((key) => {
-      const value = (jsonContent as Record<string, unknown>)[key];
-      if (typeof value === 'string') {
-        const translationResult = results[resultIndex];
-        translatedJson[key] = translationResult?.translatedText ?? value;
-        resultIndex++;
-      } else {
-        translatedJson[key] = value; // 保持非字符串值不变
+    // 如果是增量翻译模式，先尝试读取已有的翻译文件
+    let existingTranslations: Record<string, unknown> = {};
+    if (incrementalMode && fileExists(outputPath)) {
+      Logger.info(`增量翻译模式: 加载已有的翻译文件 ${outputPath}`);
+      try {
+        existingTranslations = await readJson<Record<string, unknown>>(outputPath);
+        Logger.info(`已加载 ${Object.keys(existingTranslations).length} 个已翻译的项`);
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        Logger.warn(`读取已有翻译文件失败: ${errorMessage}，将创建新文件`);
+        existingTranslations = {};
       }
-    });
+    }
 
-    // 生成输出文件名
-    const outputPath = jsonPath.replace(/\.json$/, `.${to}.json`);
-    await writeJson(outputPath, translatedJson, true);
+    // 提取需要翻译的文本
+    const keysToTranslate: string[] = [];
+    const textsToTranslate: string[] = [];
+    const finalTranslations: Record<string, unknown> = { ...existingTranslations };
 
-    const successCount = results.filter((r) => r.translatedText !== r.originalText).length;
+    // 分析源文件，确定哪些需要翻译
+    for (const key in sourceContent) {
+      const value = sourceContent[key];
+      // 只翻译字符串类型的值
+      if (typeof value === 'string') {
+        if (incrementalMode && key in existingTranslations && existingTranslations[key]) {
+          // 如果已经翻译过，并且是增量模式，则跳过
+          Logger.verbose(`跳过已翻译的键: ${key}`);
+          continue;
+        }
+        keysToTranslate.push(key);
+        textsToTranslate.push(value);
+      } else {
+        // 非字符串值直接复制
+        finalTranslations[key] = value;
+      }
+    }
+
+    if (textsToTranslate.length === 0) {
+      Logger.info(`没有需要翻译的新文本，保留所有已翻译内容`);
+      // 依然写入文件，以确保输出文件存在
+      await writeJson(outputPath, finalTranslations, true);
+      return {
+        outputPath,
+        totalCount: Object.keys(sourceContent).length,
+        successCount: Object.keys(finalTranslations).length,
+      };
+    }
+
+    Logger.info(`🔄 开始翻译 ${textsToTranslate.length} 个文本条目...`);
+
+    // 批量翻译文本
+    const results = await this.translateBatch(textsToTranslate, from, to);
+
+    // 处理翻译结果
+    let successCount = 0;
+    const realTimeWriteInterval = 50; // 每翻译50个条目写入一次文件
+
+    for (let i = 0; i < results.length; i++) {
+      const key = keysToTranslate[i];
+      const result = results[i];
+
+      if (result && result.translatedText !== result.originalText) {
+        if (key && typeof key === 'string') {
+          finalTranslations[key] = result.translatedText;
+          successCount++;
+        }
+      } else if (key && typeof key === 'string') {
+        // 翻译失败或未变化，保留原文
+        finalTranslations[key] = sourceContent[key];
+      }
+
+      // 实时写入文件，防止在大量翻译时因错误丢失已翻译内容
+      if ((i + 1) % realTimeWriteInterval === 0 || i === results.length - 1) {
+        try {
+          await writeJson(outputPath, finalTranslations, true);
+          Logger.verbose(`实时保存翻译结果到 ${outputPath}，已处理 ${i + 1}/${results.length}`);
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          Logger.warn(`实时保存翻译结果失败: ${errorMessage}`);
+        }
+      }
+    }
+
+    // 最终保存结果
+    await writeJson(outputPath, finalTranslations, true);
 
     Logger.info(`✅ 翻译完成，结果保存到: ${outputPath}`);
-    Logger.info(`📊 成功翻译: ${successCount}/${texts.length}`);
+    Logger.info(`📊 成功翻译: ${successCount}/${textsToTranslate.length}`);
 
     return {
       outputPath,
-      totalCount: texts.length,
+      totalCount: textsToTranslate.length,
       successCount,
     };
-  }
-
-  /**
-   * 批量翻译语言文件（从配置的源语言文件翻译）
-   */
-  async translateLanguageFiles(
-    outputDir: string,
-    sourceLocale: string,
-    from: string = this.config.defaultSourceLang ?? 'auto',
-    to: string = this.config.defaultTargetLang ?? 'en'
-  ): Promise<{ outputPath: string; totalCount: number; successCount: number }> {
-    const sourcePath = path.join(outputDir, `${sourceLocale}.json`);
-
-    if (!fileExists(sourcePath)) {
-      throw new Error(`源语言文件不存在: ${sourcePath}，请先运行生成命令创建源语言文件`);
-    }
-
-    Logger.info(`📖 从源语言文件读取: ${sourcePath}`);
-    return await this.translateJsonFile(sourcePath, from, to);
   }
 
   /**
@@ -246,5 +375,22 @@ export class TranslationManager {
       const provider = this.providers.get(name);
       return provider?.isConfigured() ?? false;
     });
+  }
+
+  /**
+   * 获取缓存状态
+   */
+  getCacheStatus(): { size: number } {
+    return {
+      size: this.cache.size(),
+    };
+  }
+
+  /**
+   * 清除缓存
+   */
+  clearCache(): void {
+    this.cache.clear();
+    Logger.info('翻译缓存已清空');
   }
 }

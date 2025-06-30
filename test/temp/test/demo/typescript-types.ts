@@ -405,3 +405,4 @@ export default class ApplicationCore {
     map((notification) => notification.getDisplayMessage());
   }
 }
+

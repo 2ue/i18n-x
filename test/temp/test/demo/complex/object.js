@@ -84,3 +84,4 @@ const protoObj = Object.create({
   }
 });
 protoObj.ownMessage = $t1('zi_you_shu_xing_xiao_xi');
+

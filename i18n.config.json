@@ -47,7 +47,7 @@
     }
   },
   "translation": {
-    "enabled": false,
+    "enabled": true,
     "provider": "baidu",
     "defaultSourceLang": "zh",
     "defaultTargetLang": "en",
@@ -56,8 +56,8 @@
     "retryDelay": 0,
     "batchDelay": 0,
     "baidu": {
-      "appid": "",
-      "key": ""
+      "appid": "20250605002374574",
+      "key": "NdgxyOxKi5Y4LbznDFSj"
     }
   }
 }

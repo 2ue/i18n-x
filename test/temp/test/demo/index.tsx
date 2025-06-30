@@ -29,3 +29,4 @@ export function Panel() {
 
 // 变量名为中文
 const 组件 = () => <div>{$t1('bian_liang_ming_wei_zhong_wen')}</div>;
+
