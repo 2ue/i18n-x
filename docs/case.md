@@ -44,6 +44,21 @@ const options = [
 // ]
 ```
 
+### 1.4 错误处理中的中文
+```jsx
+// 问题：throw语句中的字符串字面量
+throw '用户未登录';
+// 期望：throw $t("yong_hu_wei_deng_lu");
+
+// 问题：throw new Error()中的中文
+throw new Error('请求失败');
+// 期望：throw new Error($t("qing_qiu_shi_bai"));
+
+// 问题：模板字符串中的中文
+throw new Error(`请求接口${api}失败: ${code}`);
+// 期望：throw new Error(`${$t("qing_qiu_jie_kou")}${api}${$t("shi_bai")}: ${code}`);
+```
+
 ## 2. 基础场景测试用例
 
 ### 2.1 字符串字面量

@@ -71,4 +71,3 @@ reduce((acc, user) => {
   acc[user.id] = user.label;
   return acc;
 }, {});
-

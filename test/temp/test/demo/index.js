@@ -23,4 +23,3 @@ function render() {
 const 变量 = $t1('bian_liang_zhi');
 // 复杂表达式
 const msg = isVip ? $t1('zun_gui_hui_yuan') : $t1('pu_tong_yong_hu');
-

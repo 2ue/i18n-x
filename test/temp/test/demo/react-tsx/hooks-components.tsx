@@ -719,4 +719,3 @@ const NotificationCenter: React.FC = () => {
 };
 
 export default App;
-

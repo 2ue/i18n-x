@@ -126,4 +126,3 @@ function processItems(items) {
 
   return results;
 }
-

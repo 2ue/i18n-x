@@ -238,7 +238,12 @@ export class TranslationManager {
     from: string = this.config.defaultSourceLang ?? 'auto',
     to: string = this.config.defaultTargetLang ?? 'en',
     incrementalMode: boolean = true // 是否增量翻译模式
-  ): Promise<{ outputPath: string; totalCount: number; successCount: number }> {
+  ): Promise<{
+    outputPath: string;
+    totalCount: number;
+    successCount: number;
+    skippedCount: number;
+  }> {
     if (!fileExists(sourcePath)) {
       throw new Error(`源语言文件不存在: ${sourcePath}`);
     }
@@ -247,12 +252,14 @@ export class TranslationManager {
 
     // 解析源文件
     const sourceContent = await readJson<Record<string, unknown>>(sourcePath);
+    const totalSourceItems = Object.keys(sourceContent).length;
 
     // 生成正确的目标文件名，使用targetLocale，如"en-US.json"而不是"zh-CN.en.json"
     const outputPath = path.join(path.dirname(sourcePath), `${targetLocale}.json`);
 
     // 如果是增量翻译模式，先尝试读取已有的翻译文件
     let existingTranslations: Record<string, unknown> = {};
+    let skippedCount = 0;
     if (incrementalMode && fileExists(outputPath)) {
       Logger.info(`增量翻译模式: 加载已有的翻译文件 ${outputPath}`);
       try {
@@ -278,6 +285,7 @@ export class TranslationManager {
         if (incrementalMode && key in existingTranslations && existingTranslations[key]) {
           // 如果已经翻译过，并且是增量模式，则跳过
           Logger.verbose(`跳过已翻译的键: ${key}`);
+          skippedCount++;
           continue;
         }
         keysToTranslate.push(key);
@@ -288,18 +296,22 @@ export class TranslationManager {
       }
     }
 
-    if (textsToTranslate.length === 0) {
+    // 所有需要翻译的新条目数
+    const needTranslateCount = textsToTranslate.length;
+
+    if (needTranslateCount === 0) {
       Logger.info(`没有需要翻译的新文本，保留所有已翻译内容`);
       // 依然写入文件，以确保输出文件存在
       await writeJson(outputPath, finalTranslations, true);
       return {
         outputPath,
-        totalCount: Object.keys(sourceContent).length,
-        successCount: Object.keys(finalTranslations).length,
+        totalCount: totalSourceItems,
+        successCount: 0, // 没有新翻译，成功数为0
+        skippedCount: skippedCount, // 返回跳过的数量
       };
     }
 
-    Logger.info(`🔄 开始翻译 ${textsToTranslate.length} 个文本条目...`);
+    Logger.info(`🔄 开始翻译 ${needTranslateCount} 个文本条目...`);
 
     // 批量翻译文本
     const results = await this.translateBatch(textsToTranslate, from, to);
@@ -312,11 +324,14 @@ export class TranslationManager {
       const key = keysToTranslate[i];
       const result = results[i];
 
-      if (result && result.translatedText !== result.originalText) {
-        if (key && typeof key === 'string') {
-          finalTranslations[key] = result.translatedText;
-          successCount++;
-        }
+      if (
+        key &&
+        typeof key === 'string' &&
+        result &&
+        result.translatedText !== result.originalText
+      ) {
+        finalTranslations[key] = result.translatedText;
+        successCount++;
       } else if (key && typeof key === 'string') {
         // 翻译失败或未变化，保留原文
         finalTranslations[key] = sourceContent[key];
@@ -337,13 +352,14 @@ export class TranslationManager {
     // 最终保存结果
     await writeJson(outputPath, finalTranslations, true);
 
-    Logger.info(`✅ 翻译完成，结果保存到: ${outputPath}`);
-    Logger.info(`📊 成功翻译: ${successCount}/${textsToTranslate.length}`);
+    // 移除冗余日志输出，由CLI层负责统一输出
+    Logger.verbose(`翻译完成，结果保存到: ${outputPath}`);
 
     return {
       outputPath,
-      totalCount: textsToTranslate.length,
+      totalCount: totalSourceItems,
       successCount,
+      skippedCount,
     };
   }
 

@@ -1602,8 +1602,59 @@ export async function scanAndReplaceAll(): Promise<void> {
               Logger.verbose(
                 `替换new表达式参数中的字符串: "${stringValue}" -> ${functionName}(${quoteType === 'single' ? "'" : '"'}${key}${quoteType === 'single' ? "'" : '"'})`
               );
+            } else if (t.isTemplateLiteral(arg)) {
+              // 处理模板字符串参数，traverse会自动处理
+              Logger.verbose(`检测到new表达式中的模板字符串参数，将递归处理`);
             }
           });
+        }
+      },
+
+      // 处理throw语句
+      ThrowStatement(path: any) {
+        const argument = path.node.argument;
+
+        // 处理直接 throw '中文'
+        if (t.isStringLiteral(argument) && containsChinese(argument.value)) {
+          const stringValue = argument.value;
+          const key = createI18nKey(stringValue);
+
+          // 替换throw语句中的字符串
+          const callExpression = createI18nCallExpression(functionName, key, quoteType);
+          path.node.argument = callExpression;
+
+          hasReplacement = true;
+          fileReplacements++;
+          Logger.verbose(
+            `替换throw语句中的字符串: "${stringValue}" -> ${functionName}(${quoteType === 'single' ? "'" : '"'}${key}${quoteType === 'single' ? "'" : '"'})`
+          );
+        }
+
+        // 处理 throw new Error('中文')
+        if (t.isNewExpression(argument)) {
+          const newExpr = argument as t.NewExpression & { arguments: t.Expression[] };
+
+          if (newExpr.arguments && Array.isArray(newExpr.arguments)) {
+            newExpr.arguments.forEach((arg: any, index: number) => {
+              if (t.isStringLiteral(arg) && containsChinese(arg.value)) {
+                const stringValue = arg.value;
+                const key = createI18nKey(stringValue);
+
+                // 替换Error构造函数中的字符串
+                const callExpression = createI18nCallExpression(functionName, key, quoteType);
+                newExpr.arguments[index] = callExpression;
+
+                hasReplacement = true;
+                fileReplacements++;
+                Logger.verbose(
+                  `替换throw new Error()中的字符串: "${stringValue}" -> ${functionName}(${quoteType === 'single' ? "'" : '"'}${key}${quoteType === 'single' ? "'" : '"'})`
+                );
+              } else if (t.isTemplateLiteral(arg)) {
+                // 处理模板字符串，traverse会自动处理
+                Logger.verbose(`检测到throw new Error()中的模板字符串，将递归处理`);
+              }
+            });
+          }
         }
       },
     });

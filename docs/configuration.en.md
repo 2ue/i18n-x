@@ -102,6 +102,10 @@ The configuration file uses JSON format and includes the following main sections
 - **Type**: `string[]`
 - **Default**: `["node_modules/**", "dist/**", "build/**", "**/*.test.{js,jsx,ts,tsx}", "**/*.spec.{js,jsx,ts,tsx}"]`
 - **Description**: File patterns to exclude
+- **Notes**: 
+  - Supports glob patterns
+  - The system automatically adds `**/` prefix to patterns that don't contain path separators (`/`) and don't start with `**/`
+  - For example, `node_modules` will be automatically converted to `**/node_modules` to match `node_modules` directories at any level in the project
 
 **Common Configuration Examples**:
 

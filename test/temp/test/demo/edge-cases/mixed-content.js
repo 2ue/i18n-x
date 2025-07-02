@@ -78,4 +78,3 @@ const typedVar = $t1('zhe_shi_ying_gai_ti_huan_de_zhi');
 // 中文与路径混合
 const filePath = $t1('yong_hu_wen_dang');
 const unixPath = $t1('yong_hu_wen_dang_1ly9ha');
-

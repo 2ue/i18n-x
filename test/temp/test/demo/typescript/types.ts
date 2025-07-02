@@ -23,7 +23,7 @@ const messageValue = getValue() as '成功信息';
 enum Status {
   LOADING = $t1('jia_zai_zhong'),
   SUCCESS = $t1('cheng_gong'),
-  ERROR = $t1('shi_bai'),
+  ERROR = $t1('shi_bai_2umy9'),
 }
 
 // 泛型约束
@@ -140,4 +140,3 @@ GreeterService {
     return $t1('ni_hao_yhyhtg') + this.greeting;
   }
 }
-

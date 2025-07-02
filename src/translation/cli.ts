@@ -98,7 +98,7 @@ export async function translateCommand(options: TranslateOptions): Promise<void>
 
         Logger.info(`📖 从源语言文件读取: ${sourcePath}`);
 
-        const { outputPath, totalCount, successCount } =
+        const { outputPath, totalCount, successCount, skippedCount } =
           await translationManager.translateLanguageFile(
             sourcePath,
             targetLocale,
@@ -107,8 +107,22 @@ export async function translateCommand(options: TranslateOptions): Promise<void>
             incrementalMode
           );
 
-        Logger.success(`翻译完成，结果保存到: ${outputPath}`, 'normal');
-        Logger.info(`成功翻译: ${successCount}/${totalCount}`, 'normal');
+        Logger.success(`✅ 翻译完成，结果保存到: ${outputPath}`, 'normal');
+        if (skippedCount > 0) {
+          if (successCount > 0) {
+            Logger.info(
+              `📊 成功翻译: ${successCount}项新内容，跳过已翻译项: ${skippedCount}项，共${totalCount}项`,
+              'normal'
+            );
+          } else {
+            Logger.info(
+              `📊 无新内容需要翻译，已有翻译项: ${skippedCount}项，共${totalCount}项`,
+              'normal'
+            );
+          }
+        } else {
+          Logger.info(`📊 成功翻译: ${successCount}/${totalCount}项`, 'normal');
+        }
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
         Logger.error(`翻译失败: ${errorMessage}`, 'minimal');
@@ -152,16 +166,25 @@ async function handleTranslateJsonFile(
   // 推导目标语言的Locale
   const targetLocale = ConfigManager.get().fallbackLocale || 'en-US';
 
-  const { outputPath, totalCount, successCount } = await manager.translateLanguageFile(
-    jsonPath,
-    targetLocale,
-    from,
-    to,
-    incremental
-  );
+  const { outputPath, totalCount, successCount, skippedCount } =
+    await manager.translateLanguageFile(jsonPath, targetLocale, from, to, incremental);
 
-  Logger.success(`翻译完成，结果保存到: ${outputPath}`, 'normal');
-  Logger.info(`成功翻译: ${successCount}/${totalCount}`, 'normal');
+  Logger.success(`✅ 翻译完成，结果保存到: ${outputPath}`, 'normal');
+  if (skippedCount > 0) {
+    if (successCount > 0) {
+      Logger.info(
+        `📊 成功翻译: ${successCount}项新内容，跳过已翻译项: ${skippedCount}项，共${totalCount}项`,
+        'normal'
+      );
+    } else {
+      Logger.info(
+        `📊 无新内容需要翻译，已有翻译项: ${skippedCount}项，共${totalCount}项`,
+        'normal'
+      );
+    }
+  } else {
+    Logger.info(`📊 成功翻译: ${successCount}/${totalCount}项`, 'normal');
+  }
 }
 
 /**
@@ -185,16 +208,25 @@ async function handleTranslateBatchFiles(
 
   Logger.info(`📖 从源语言文件读取: ${sourcePath}`);
 
-  const { outputPath, totalCount, successCount } = await manager.translateLanguageFile(
-    sourcePath,
-    targetLocale,
-    from,
-    to,
-    incremental
-  );
+  const { outputPath, totalCount, successCount, skippedCount } =
+    await manager.translateLanguageFile(sourcePath, targetLocale, from, to, incremental);
 
-  Logger.success(`批量翻译完成，结果保存到: ${outputPath}`, 'normal');
-  Logger.info(`成功翻译: ${successCount}/${totalCount}`, 'normal');
+  Logger.success(`✅ 批量翻译完成，结果保存到: ${outputPath}`, 'normal');
+  if (skippedCount > 0) {
+    if (successCount > 0) {
+      Logger.info(
+        `📊 成功翻译: ${successCount}项新内容，跳过已翻译项: ${skippedCount}项，共${totalCount}项`,
+        'normal'
+      );
+    } else {
+      Logger.info(
+        `📊 无新内容需要翻译，已有翻译项: ${skippedCount}项，共${totalCount}项`,
+        'normal'
+      );
+    }
+  } else {
+    Logger.info(`📊 成功翻译: ${successCount}/${totalCount}项`, 'normal');
+  }
 }
 
 /**
