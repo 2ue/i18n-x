@@ -24,6 +24,16 @@ export function AttributeComponent() {
   );
 }
 
+function test() {
+  const api = '/fe-api/micro-app/antool';
+  const code = 404;
+  if (code === 404) {
+    throw new Error(`请求接口${api}失败: ${code}`);
+  } else {
+    throw new Error(`请求接口失败`);
+  }
+}
+
 // JSX表达式容器内的字符串字面量
 export function ExpressionContainer() {
   return (
@@ -48,6 +58,16 @@ export function ConditionalRendering() {
 
 // 数组字面量中的字符串
 export function ArrayLiterals() {
+
+  function test() {
+    const api = '/fe-api/micro-app/antool';
+    const code = 404;
+    if (code === 404) {
+      throw new Error(`请求接口${api}失败: ${code}`);
+    } else {
+      throw new Error(`请求接口失败`);
+    }
+  }
   return (
     <div>
       <ul>
@@ -88,6 +108,46 @@ export function ComplexJSX() {
     { id: 1, name: '项目一' },
     { id: 2, name: '项目二' }
   ];
+
+  function test() {
+    const api = '/fe-api/micro-app/antool';
+    const code = 404;
+    if (code === 404) {
+      throw new Error(`请求接口${api}失败: ${code}`);
+    } else {
+      throw new Error(`请求接口失败`);
+    }
+  }
+
+const renderTodoList = (list = [], treeIdMap) => {
+  if (!list.length) return '<div>暂无数据</div>';
+  const cols = list
+    .map((v) => `
+        <tr>
+          <td bgcolor="${thBgcolor}" style="${fontSize};${thBorderT}">${treeIdMap?.[v.level3]?.Name || '其它诉求'}</td>
+          <td bgcolor="${thBgcolor}" style="${fontSize};${tdBorderLT}">${treeIdMap?.[v.level4]?.Name || '自闭环待办'}</td>
+          <td style="${fontSize};${tdBorderLT}">${v?.toDoManager || ''}</td>
+          <td style="${fontSize};${tdBorderLT}">${priorityMap[v?.priority] || ''}</td>
+          <td style="${fontSize};${tdBorderLT}">${v?.toDoDescription || 'toDoDescriptiontoDoDescriptiontoDoDescriptiontoDoDescriptiontoDoDescription'}</td>
+          <td style="${fontSize};${tdBorderLT}">${v?.cusReqTime || ''}</td>
+        </tr>`)
+    .join('');
+  return `<table cellspacing="0" cellpadding="5" style="width: 100%; border: 0.5px solid #D4D5D7">
+        <thead>
+          <tr style="text-align: left">
+            <th bgcolor="${thBgcolor}" style="${fontSize};${thWidth}">三级目录</th>
+            <th style="${fontSize};${thBorderL};${thWidth}" bgcolor="${thBgcolor}">四级目录</th>
+            <th style="${fontSize};${thBorderL};${thWidth}" bgcolor="${thBgcolor}">处理人</th>
+            <th style="${fontSize};${thBorderL};${thWidth}" bgcolor="${thBgcolor}">优先级</th>
+            <th style="${fontSize};${thBorderL};${thWidth}" bgcolor="${thBgcolor}">待办描述</th>
+            <th style="${fontSize};${thBorderL};${thWidth}" bgcolor="${thBgcolor}">计划完成时间</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${cols}
+        </tbody>
+      </table>`;
+};
   
   return (
     <div className="modal">
@@ -107,3 +167,34 @@ export function ComplexJSX() {
     </div>
   );
 } 
+
+
+const renderTodoList = (list = [], treeIdMap) => {
+  if (!list.length) return '<div>暂无数据</div>';
+  const cols = list
+    .map((v) => `
+        <tr>
+          <td bgcolor="${thBgcolor}" style="${fontSize};${thBorderT}">${treeIdMap?.[v.level3]?.Name || '其它诉求'}</td>
+          <td bgcolor="${thBgcolor}" style="${fontSize};${tdBorderLT}">${treeIdMap?.[v.level4]?.Name || '自闭环待办'}</td>
+          <td style="${fontSize};${tdBorderLT}">${v?.toDoManager || ''}</td>
+          <td style="${fontSize};${tdBorderLT}">${priorityMap[v?.priority] || ''}</td>
+          <td style="${fontSize};${tdBorderLT}">${v?.toDoDescription || 'toDoDescriptiontoDoDescriptiontoDoDescriptiontoDoDescriptiontoDoDescription'}</td>
+          <td style="${fontSize};${tdBorderLT}">${v?.cusReqTime || ''}</td>
+        </tr>`)
+    .join('');
+  return `<table cellspacing="0" cellpadding="5" style="width: 100%; border: 0.5px solid #D4D5D7">
+        <thead>
+          <tr style="text-align: left">
+            <th bgcolor="${thBgcolor}" style="${fontSize};${thWidth}">三级目录</th>
+            <th style="${fontSize};${thBorderL};${thWidth}" bgcolor="${thBgcolor}">四级目录</th>
+            <th style="${fontSize};${thBorderL};${thWidth}" bgcolor="${thBgcolor}">处理人</th>
+            <th style="${fontSize};${thBorderL};${thWidth}" bgcolor="${thBgcolor}">优先级</th>
+            <th style="${fontSize};${thBorderL};${thWidth}" bgcolor="${thBgcolor}">待办描述</th>
+            <th style="${fontSize};${thBorderL};${thWidth}" bgcolor="${thBgcolor}">计划完成时间</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${cols}
+        </tbody>
+      </table>`;
+};

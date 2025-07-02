@@ -25,6 +25,17 @@ interface Notification {
 // 主题类型
 type ThemeType = '浅色' | '深色' | '自动';
 
+
+function test() {
+  const api = '/fe-api/micro-app/antool';
+  const code = 404;
+  if (code === 404) {
+    throw new Error($t1('qing_qiu_jie_kou') + api + $t1('shi_bai') + code);
+  } else {
+    throw new Error($t1('qing_qiu_jie_kou_shi_bai'));
+  }
+}
+
 // 动态属性示例组件
 const DynamicAttributes: React.FC<{user: User;theme: ThemeType;}> = ({ user, theme }) => {
   const [isActive, setIsActive] = useState(user.status === $t1('zai_xian'));
@@ -350,6 +361,16 @@ const ComplexDynamicComponent: React.FC = () => {
     color: theme === $t1('shen_se') ? '#fff' : '#333',
     transition: 'all 0.3s ease'
   };
+
+  function test() {
+    const api = '/fe-api/micro-app/antool';
+    const code = 404;
+    if (code === 404) {
+      throw new Error($t1('qing_qiu_jie_kou') + api + $t1('shi_bai') + code);
+    } else {
+      throw new Error($t1('qing_qiu_jie_kou_shi_bai'));
+    }
+  }
 
   return (
     <div className="complex-dynamic-component" style={containerStyle}>

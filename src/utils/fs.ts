@@ -64,17 +64,30 @@ export function findFiles(pattern: string | string[], options: Options = {}): Pr
  * @param exclude 需要排除的文件模式（glob数组或字符串）
  */
 export function findTargetFiles(include: string[], exclude: string[] = []): Promise<string[]> {
-  // 处理排除模式，为不以 **/ 开头的模式添加 **/ 前缀
-  const processedExclude = exclude.map((pattern) => {
-    // 如果模式已经以 **/ 或 */ 开头，或包含完整路径（包含 /），则不处理
-    if (pattern.startsWith('**/') || pattern.includes('/')) {
-      return pattern;
-    }
-    // 为模式添加 **/ 前缀，使其可以匹配任意层级的目录
-    return `**/${pattern}`;
-  });
+  // // 处理排除模式，使其能够匹配任意层级的目录
+  // const processedExclude = exclude.map((pattern) => {
+  //   // 如果模式已经以 **/ 开头，则不处理
+  //   if (pattern.startsWith('**/')) {
+  //     return pattern;
+  //   }
 
-  return fg(include, { ignore: processedExclude, dot: true, cwd: process.cwd() });
+  //   // 处理带有 /** 后缀的模式（如 node_modules/**）
+  //   // 将其转换为 **/node_modules/** 以匹配任意层级
+  //   if (pattern.includes('/') && pattern.endsWith('/**')) {
+  //     const dirName = pattern.slice(0, -3); // 去掉 '/**'
+  //     return `**/${dirName}/**`;
+  //   }
+
+  //   // 如果模式包含完整路径（包含 /），则不处理
+  //   if (pattern.includes('/')) {
+  //     return pattern;
+  //   }
+
+  //   // 为不带路径分隔符的模式添加 **/ 前缀，使其可以匹配任意层级的目录
+  //   return `**/${pattern}`;
+  // });
+
+  return fg(include, { ignore: exclude, dot: true, cwd: process.cwd() });
 }
 
 /**

@@ -102,30 +102,54 @@
 - **类型**: `string[]`
 - **默认值**: `["node_modules/**", "dist/**", "build/**", "**/*.test.{js,jsx,ts,tsx}", "**/*.spec.{js,jsx,ts,tsx}"]`
 - **描述**: 要排除的文件匹配模式
-- **说明**: 
-  - 支持 glob 模式
-  - 系统会自动为不包含路径分隔符（`/`）且不以 `**/` 开头的模式添加 `**/` 前缀，使其能够匹配任意层级的文件
-  - 例如，`node_modules` 将被自动转换为 `**/node_modules`，以便匹配项目中任何位置的 `node_modules` 目录
 
-**常见配置示例**:
+**详细说明**:
+
+exclude 配置项使用 [glob 模式](https://github.com/isaacs/minimatch#usage) 来排除不需要处理的文件。以下是常见的使用场景和模式写法：
+
+1. **排除特定目录**
+   - `node_modules/**` - 只排除根目录下的 node_modules 目录
+   - `**/node_modules/**` - 排除任意层级下的 node_modules 目录（推荐）
+   - `src/generated/**` - 排除特定路径下的目录
+
+2. **排除特定文件类型**
+   - `**/*.test.js` - 排除所有 .test.js 文件
+   - `**/*.{test,spec}.{js,jsx,ts,tsx}` - 排除所有测试文件
+
+3. **排除特定文件**
+   - `src/config.js` - 排除特定路径下的文件
+   - `**/config.js` - 排除任意层级下的 config.js 文件
+
+**注意事项**:
+- 模式是相对于项目根目录的，不是相对于 include 指定的目录
+- 要排除嵌套在子目录中的文件/目录，请使用 `**/` 前缀
+- 排除模式的优先级低于包含模式，即先应用 include，再应用 exclude
+
+**示例配置**:
 
 ```json
 {
   "include": [
-    "src/**/*.{js,jsx,ts,tsx}",
-    "pages/**/*.{js,jsx,ts,tsx}",
-    "components/**/*.{js,jsx,ts,tsx}",
-    "lib/**/*.{js,ts}"
+    "src/**/*.{js,jsx,ts,tsx}"
   ],
   "exclude": [
-    "node_modules/**",
-    "dist/**",
-    "build/**",
-    "**/*.test.*",
-    "**/*.spec.*",
-    "**/*.stories.*",
-    "**/*.d.ts",
-    "**/vendor/**"
+    // 排除任意层级的 node_modules 目录
+    "**/node_modules/**",
+    
+    // 排除任意层级的 dist 和 build 目录
+    "**/dist/**",
+    "**/build/**",
+    
+    // 排除所有测试文件
+    "**/*.test.{js,jsx,ts,tsx}",
+    "**/*.spec.{js,jsx,ts,tsx}",
+    
+    // 排除特定目录
+    "src/generated/**",
+    
+    // 排除隐藏目录
+    "**/.next/**",
+    "**/.cache/**"
   ]
 }
 ```

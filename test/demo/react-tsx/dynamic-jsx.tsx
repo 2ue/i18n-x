@@ -25,6 +25,17 @@ interface Notification {
 // 主题类型
 type ThemeType = '浅色' | '深色' | '自动';
 
+
+function test() {
+  const api = '/fe-api/micro-app/antool';
+  const code = 404;
+  if (code === 404) {
+    throw new Error(`请求接口${api}失败: ${code}`);
+  } else {
+    throw new Error(`请求接口失败`);
+  }
+}
+
 // 动态属性示例组件
 const DynamicAttributes: React.FC<{ user: User; theme: ThemeType }> = ({ user, theme }) => {
   const [isActive, setIsActive] = useState(user.status === '在线');
@@ -350,6 +361,16 @@ const ComplexDynamicComponent: React.FC = () => {
     color: theme === '深色' ? '#fff' : '#333',
     transition: 'all 0.3s ease'
   };
+
+  function test() {
+    const api = '/fe-api/micro-app/antool';
+    const code = 404;
+    if (code === 404) {
+      throw new Error(`请求接口${api}失败: ${code}`);
+    } else {
+      throw new Error(`请求接口失败`);
+    }
+  }
 
   return (
     <div className="complex-dynamic-component" style={containerStyle}>

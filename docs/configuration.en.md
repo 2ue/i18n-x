@@ -102,30 +102,54 @@ The configuration file uses JSON format and includes the following main sections
 - **Type**: `string[]`
 - **Default**: `["node_modules/**", "dist/**", "build/**", "**/*.test.{js,jsx,ts,tsx}", "**/*.spec.{js,jsx,ts,tsx}"]`
 - **Description**: File patterns to exclude
-- **Notes**: 
-  - Supports glob patterns
-  - The system automatically adds `**/` prefix to patterns that don't contain path separators (`/`) and don't start with `**/`
-  - For example, `node_modules` will be automatically converted to `**/node_modules` to match `node_modules` directories at any level in the project
 
-**Common Configuration Examples**:
+**Detailed Explanation**:
+
+The exclude configuration uses [glob patterns](https://github.com/isaacs/minimatch#usage) to exclude files that should not be processed. Here are common use cases and pattern formats:
+
+1. **Excluding Specific Directories**
+   - `node_modules/**` - Excludes only the node_modules directory at the root level
+   - `**/node_modules/**` - Excludes node_modules directories at any level (recommended)
+   - `src/generated/**` - Excludes a specific directory path
+
+2. **Excluding Specific File Types**
+   - `**/*.test.js` - Excludes all .test.js files
+   - `**/*.{test,spec}.{js,jsx,ts,tsx}` - Excludes all test files
+
+3. **Excluding Specific Files**
+   - `src/config.js` - Excludes a specific file at a specific path
+   - `**/config.js` - Excludes config.js files at any level
+
+**Important Notes**:
+- Patterns are relative to the project root, not to directories specified in the include option
+- To exclude files/directories nested in subdirectories, use the `**/` prefix
+- Exclude patterns have lower priority than include patterns; include is applied first, then exclude
+
+**Example Configuration**:
 
 ```json
 {
   "include": [
-    "src/**/*.{js,jsx,ts,tsx}",
-    "pages/**/*.{js,jsx,ts,tsx}",
-    "components/**/*.{js,jsx,ts,tsx}",
-    "lib/**/*.{js,ts}"
+    "src/**/*.{js,jsx,ts,tsx}"
   ],
   "exclude": [
-    "node_modules/**",
-    "dist/**",
-    "build/**",
-    "**/*.test.*",
-    "**/*.spec.*",
-    "**/*.stories.*",
-    "**/*.d.ts",
-    "**/vendor/**"
+    // Exclude node_modules directories at any level
+    "**/node_modules/**",
+    
+    // Exclude dist and build directories at any level
+    "**/dist/**",
+    "**/build/**",
+    
+    // Exclude all test files
+    "**/*.test.{js,jsx,ts,tsx}",
+    "**/*.spec.{js,jsx,ts,tsx}",
+    
+    // Exclude specific directories
+    "src/generated/**",
+    
+    // Exclude hidden directories
+    "**/.next/**",
+    "**/.cache/**"
   ]
 }
 ```
