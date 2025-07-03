@@ -2,7 +2,7 @@ import { parse } from '@babel/parser';
 import * as t from '@babel/types';
 import { findTargetFiles, readFile, writeFileWithTempDir } from '../utils/fs';
 import { ConfigManager } from '../config';
-import { createI18nKey, initI18nCache, flushI18nCache } from '../gen-key-value';
+import { createI18nKey, initI18nCache, flushI18nCache, keyValueCache } from '../gen-key-value';
 import { Logger } from '../utils/logger';
 import { ImportManager } from '../utils/import-manager';
 
@@ -113,11 +113,25 @@ function createI18nCallExpression(
   key: string,
   quoteType: 'single' | 'double'
 ): t.CallExpression {
-  const keyNode = t.stringLiteral(key);
+  // 获取配置，判断是否使用原始中文文本作为key
+  const config = ConfigManager.get();
+  const useOriginalTextAsKey = config.replacement?.useOriginalTextAsKey ?? false;
+
+  let actualKey = key;
+  if (useOriginalTextAsKey && keyValueCache[key]) {
+    actualKey = keyValueCache[key];
+  }
+
+  // 调试日志
+  Logger.verbose(
+    `[createI18nCallExpression] useOriginalTextAsKey: ${useOriginalTextAsKey}, key: ${key}, keyValueCache[key]: ${keyValueCache[key]}, actualKey: ${actualKey}`
+  );
+
+  const keyNode = t.stringLiteral(actualKey);
 
   // 当需要双引号时，确保节点具有正确的引号类型
   if (quoteType === 'double' && keyNode.extra) {
-    keyNode.extra = { ...keyNode.extra, raw: `"${key}"`, rawValue: key };
+    keyNode.extra = { ...keyNode.extra, raw: `"${actualKey}"`, rawValue: actualKey };
   }
 
   return t.callExpression(t.identifier(functionName), [keyNode]);
