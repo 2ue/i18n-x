@@ -5,7 +5,7 @@ const { $t1 } = useTranslation();
 // 类装饰器
 function Logger(loggerOptions: {prefix?: string;enabled?: boolean;} = {}) {
   const options = {
-    prefix: $t1('xi_tong_ri_zhi'),
+    prefix: $t1('系统日志'),
     enabled: true,
     ...loggerOptions
   };
@@ -20,19 +20,19 @@ function Logger(loggerOptions: {prefix?: string;enabled?: boolean;} = {}) {
         },
         error: (message: string) => {
           if (options.enabled) {
-            console.error('[' + options.prefix + $t1('cuo_wu_293oxv') + message);
+            console.error('[' + options.prefix + $t1('-错误] ') + message);
           }
         },
         warn: (message: string) => {
           if (options.enabled) {
-            console.warn('[' + options.prefix + $t1('jing_gao_1totyx') + message);
+            console.warn('[' + options.prefix + $t1('-警告] ') + message);
           }
         }
       };
 
       constructor(...args: any[]) {
         super(...args);
-        this._logger.log($t1('shi_li_yi_chuang_jian'));
+        this._logger.log($t1('实例已创建'));
       }
     };
   };
@@ -43,16 +43,16 @@ function Measure(target: any, propertyKey: string, descriptor: PropertyDescripto
   const originalMethod = descriptor.value;
 
   descriptor.value = async function (...args: any[]) {
-    console.log($t1('kai_shi_zhi_xing') + propertyKey + $t1('fang_fa_3dj5jd'));
+    console.log($t1('开始执行 ') + propertyKey + $t1(' 方法'));
     const startTime = Date.now();
 
     try {
       const result = await originalMethod.apply(this, args);
       const endTime = Date.now();
-      console.log(propertyKey + $t1('fang_fa_zhi_xing_wan_cheng_hao_shi') + (endTime - startTime) + 'ms');
+      console.log(propertyKey + $t1(' 方法执行完成，耗时: ') + (endTime - startTime) + 'ms');
       return result;
     } catch (error) {
-      console.error(propertyKey + $t1('fang_fa_zhi_xing_shi_bai') + error.message);
+      console.error(propertyKey + $t1(' 方法执行失败: ') + error.message);
       throw error;
     }
   };
@@ -73,7 +73,7 @@ function MinLength(minLength: number) {
 
     const setter = function (newValue: string) {
       if (newValue.length < minLength) {
-        throw new Error(propertyKey + $t1('chang_du_bu_neng_xiao_yu') + minLength + $t1('ge_zi_fu_12gic5'));
+        throw new Error(propertyKey + $t1(' 长度不能小于 ') + minLength + $t1(' 个字符'));
       }
       value = newValue;
     };
@@ -103,7 +103,7 @@ function Validate(target: any, propertyKey: string, descriptor: PropertyDescript
   descriptor.value = function (...args: any[]) {
     for (const index of requiredParams) {
       if (args[index] === undefined || args[index] === null) {
-        throw new Error($t1('can_shu') + (index + 1) + $t1('shi_bi_xu_de'));
+        throw new Error($t1('参数 ') + (index + 1) + $t1(' 是必需的'));
       }
     }
     return originalMethod.apply(this, args);
@@ -113,7 +113,7 @@ function Validate(target: any, propertyKey: string, descriptor: PropertyDescript
 }
 
 // 使用装饰器的用户服务类
-@Logger({ prefix: $t1('yong_hu_fu_wu') })class
+@Logger({ prefix: $t1('用户服务') })class
 UserService {
   @MinLength(3)
   private username: string = '';
@@ -129,31 +129,31 @@ UserService {
     return {
       id: 1,
       username: this.username,
-      role: $t1('guan_li_yuan'),
+      role: $t1('管理员'),
       lastLogin: new Date()
     };
   }
 
   @Validate
   updateProfile(@Required name: string, age: number, @Required role: string): string {
-    return $t1('yong_hu_zi_liao_yi_geng_xin_xing_ming') + name + $t1('nian_ling_n92r50') + age + $t1('jue_se_mcpxx0') + role;
+    return $t1('用户资料已更新: 姓名=') + name + $t1(', 年龄=') + age + $t1(', 角色=') + role;
   }
 
   @Measure
   async processUserPermissions(): Promise<string[]> {
     // 模拟耗时操作
     await new Promise((resolve) => setTimeout(resolve, 1500));
-    return [$t1('du_qu'), $t1('xie_ru'), $t1('shan_chu')];
+    return [$t1('读取'), $t1('写入'), $t1('删除')];
   }
 }
 
 // 多重装饰器
-function Deprecated(message: string = $t1('ci_fang_fa_yi_guo_shi')) {
+function Deprecated(message: string = $t1('此方法已过时')) {
   return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
     const originalMethod = descriptor.value;
 
     descriptor.value = function (...args: any[]) {
-      console.warn($t1('jing_gao_yhzi2b') + propertyKey + $t1('fang_fa_yi_bei_qi_yong') + message);
+      console.warn($t1('警告: ') + propertyKey + $t1(' 方法已被弃用. ') + message);
       return originalMethod.apply(this, args);
     };
 
@@ -175,7 +175,7 @@ function Cacheable(ttl: number = 60000) {// 默认缓存1分钟
       if (cache.has(key)) {
         const cacheEntry = cache.get(key)!;
         if (now - cacheEntry.timestamp < ttl) {
-          console.log($t1('cong_huan_cun_huo_qu') + propertyKey + $t1('jie_guo'));
+          console.log($t1('从缓存获取 ') + propertyKey + $t1(' 结果'));
           return cacheEntry.value;
         }
       }
@@ -185,7 +185,7 @@ function Cacheable(ttl: number = 60000) {// 默认缓存1分钟
 
       // 更新缓存
       cache.set(key, { value: result, timestamp: now });
-      console.log($t1('huan_cun') + propertyKey + $t1('jie_guo_you_xiao_qi') + ttl + 'ms');
+      console.log($t1('缓存 ') + propertyKey + $t1(' 结果，有效期 ') + ttl + 'ms');
 
       return result;
     };
@@ -201,14 +201,14 @@ class DataService {
   async fetchData(id: number): Promise<object> {
     // 模拟API调用
     await new Promise((resolve) => setTimeout(resolve, 2000));
-    return { id, name: $t1('shu_ju_xiang'), timestamp: Date.now() };
+    return { id, name: $t1('数据项'), timestamp: Date.now() };
   }
 
-  @Deprecated($t1('qing_shi_yong_fang_fa_dai_ti'))
+  @Deprecated($t1('请使用 fetchDataV2 方法代替'))
   @Measure
   async fetchLegacyData(): Promise<object> {
     await new Promise((resolve) => setTimeout(resolve, 500));
-    return { legacy: true, data: $t1('jiu_shu_ju') };
+    return { legacy: true, data: $t1('旧数据') };
   }
 
   @Cacheable()
@@ -218,7 +218,7 @@ class DataService {
 
     const baseData = {
       id,
-      name: $t1('shu_ju_xiang'),
+      name: $t1('数据项'),
       timestamp: Date.now(),
       version: 2
     };
@@ -226,7 +226,7 @@ class DataService {
     if (options.full) {
       return {
         ...baseData,
-        details: $t1('xiang_xi_xin_xi'),
+        details: $t1('详细信息'),
         stats: {
           views: 100,
           likes: 50
@@ -250,9 +250,9 @@ function createLogDecorator(options: {
       const timestamp = options.includeTimestamp ? `[${new Date().toISOString()}] ` : '';
       const prefix = `${timestamp}${options.level}: `;
 
-      console.log(prefix + $t1('diao_yong') + propertyKey + $t1('fang_fa_can_shu'), args);
+      console.log(prefix + $t1('调用 ') + propertyKey + $t1(' 方法，参数:'), args);
       const result = originalMethod.apply(this, args);
-      console.log(prefix + propertyKey + $t1('fang_fa_fan_hui'), result);
+      console.log(prefix + propertyKey + $t1(' 方法返回:'), result);
 
       return result;
     };
@@ -263,14 +263,14 @@ function createLogDecorator(options: {
 
 // 使用工厂装饰器
 class ConfigService {
-  @createLogDecorator({ level: $t1('xin_xi'), includeTimestamp: true })
+  @createLogDecorator({ level: $t1('信息'), includeTimestamp: true })
   getConfig(name: string): object {
-    return { name, value: $t1('pei_zhi_zhi') + name, enabled: true };
+    return { name, value: $t1('配置值-') + name, enabled: true };
   }
 
-  @createLogDecorator({ level: $t1('jing_gao') })
+  @createLogDecorator({ level: $t1('警告') })
   resetConfig(name: string): boolean {
-    console.log($t1('zhong_zhi_pei_zhi') + name);
+    console.log($t1('重置配置: ') + name);
     return true;
   }
 }
@@ -286,28 +286,28 @@ function composeDecorators(...decorators: Function[]) {
 
 // 使用组合装饰器
 const LogAndMeasure = composeDecorators(
-  createLogDecorator({ level: $t1('xin_xi'), includeTimestamp: true }),
+  createLogDecorator({ level: $t1('信息'), includeTimestamp: true }),
   Measure
 );
 
 class AnalyticsService {
   @LogAndMeasure
   processData(data: any[]): object {
-    console.log($t1('chu_li_36oe4n') + data.length + $t1('tiao_shu_ju_ji_lu'));
-    return { processed: data.length, status: $t1('wan_cheng') };
+    console.log($t1('处理 ') + data.length + $t1(' 条数据记录'));
+    return { processed: data.length, status: $t1('完成') };
   }
 }
 
 // 示例使用
 async function demonstrateDecorators() {
   // 用户服务示例
-  const userService = new UserService($t1('guan_li_yuan_yong_hu'));
+  const userService = new UserService($t1('管理员用户'));
   await userService.fetchUserData();
 
   try {
-    userService.updateProfile($t1('zhang_san'), 30, $t1('guan_li_yuan'));
+    userService.updateProfile($t1('张三'), 30, $t1('管理员'));
   } catch (error) {
-    console.error($t1('geng_xin_zi_liao_cuo_wu') + error.message);
+    console.error($t1('更新资料错误: ') + error.message);
   }
 
   await userService.processUserPermissions();
@@ -322,8 +322,8 @@ async function demonstrateDecorators() {
 
   // 配置服务示例
   const configService = new ConfigService();
-  configService.getConfig($t1('zhu_ti'));
-  configService.resetConfig($t1('huan_cun_3rtla'));
+  configService.getConfig($t1('主题'));
+  configService.resetConfig($t1('缓存'));
 
   // 分析服务示例
   const analyticsService = new AnalyticsService();

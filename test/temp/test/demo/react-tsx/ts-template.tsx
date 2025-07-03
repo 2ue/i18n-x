@@ -52,9 +52,9 @@ const priorityMap: any = {
 
 // 客情
 const customMap: any = {
-  1: $t1('zheng_chang'),
-  2: $t1('yi_ban'),
-  3: $t1('zhong_da')
+  1: $t1('正常'),
+  2: $t1('一般'),
+  3: $t1('重大')
 };
 
 const renderConclusionList = (list: string) => {
@@ -64,7 +64,7 @@ const renderConclusionList = (list: string) => {
   } catch (error) {
     console.log(error);
   }
-  if (!arr.length) return $t1('zan_wu_shu_ju_1czcgv');
+  if (!arr.length) return $t1('<div>暂无数据</div>');
   const cols = arr.
   map((v: any) => `
         <tr>
@@ -77,10 +77,17 @@ const renderConclusionList = (list: string) => {
   return '<table cellspacing="0" cellpadding="5" style="width: 100%; border: 0.5px solid #D4D5D7">\n        <thead>\n          <tr style="text-align: left">\n            <th bgcolor="' +
 
 
-  thBgcolor + '" style="' + fontSize + ';' + thWidth + $t1('ti_chu_ren') +
-  fontSize + ';' + thBorderL + ';' + thWidth + '" bgcolor="' + thBgcolor + $t1('que_ren_xiang_miao_shu') +
-  fontSize + ';' + thBorderL + ';' + thWidth + '" bgcolor="' + thBgcolor + $t1('jie_lun') +
-  fontSize + ';' + thBorderL + ';' + thWidth + '" bgcolor="' + thBgcolor + $t1('bei_zhu') +
+  thBgcolor + '" style="' + fontSize + ';' + thWidth + $t1('">提出人</th>
+            <th style="') +
+  fontSize + ';' + thBorderL + ';' + thWidth + '" bgcolor="' + thBgcolor + $t1('">确认项描述</th>
+            <th style="') +
+  fontSize + ';' + thBorderL + ';' + thWidth + '" bgcolor="' + thBgcolor + $t1('">结论</th>
+            <th style="') +
+  fontSize + ';' + thBorderL + ';' + thWidth + '" bgcolor="' + thBgcolor + $t1('">备注</th>
+          </tr>
+        </thead>
+        <tbody>
+          ') +
 
 
 
@@ -90,12 +97,12 @@ const renderConclusionList = (list: string) => {
 };
 
 const renderTodoList = (list = [], treeIdMap: any) => {
-  if (!list.length) return $t1('zan_wu_shu_ju_1czcgv');
+  if (!list.length) return $t1('<div>暂无数据</div>');
   const cols = list.
   map((v: any) => `
         <tr>
-          <td bgcolor="${thBgcolor}" style="${fontSize};${thBorderT}">${treeIdMap?.[v.level3]?.Name || $t1('qi_ta_su_qiu')}</td>
-          <td bgcolor="${thBgcolor}" style="${fontSize};${tdBorderLT}">${treeIdMap?.[v.level4]?.Name || $t1('zi_bi_huan_dai_ban')}</td>
+          <td bgcolor="${thBgcolor}" style="${fontSize};${thBorderT}">${treeIdMap?.[v.level3]?.Name || $t1('其它诉求')}</td>
+          <td bgcolor="${thBgcolor}" style="${fontSize};${tdBorderLT}">${treeIdMap?.[v.level4]?.Name || $t1('自闭环待办')}</td>
           <td style="${fontSize};${tdBorderLT}">${v?.toDoManager || ''}</td>
           <td style="${fontSize};${tdBorderLT}">${priorityMap[v?.priority] || ''}</td>
           <td style="${fontSize};${tdBorderLT}">${v?.toDoDescription || 'toDoDescriptiontoDoDescriptiontoDoDescriptiontoDoDescriptiontoDoDescription'}</td>
@@ -105,12 +112,21 @@ const renderTodoList = (list = [], treeIdMap: any) => {
   return '<table cellspacing="0" cellpadding="5" style="width: 100%; border: 0.5px solid #D4D5D7">\n        <thead>\n          <tr style="text-align: left">\n            <th bgcolor="' +
 
 
-  thBgcolor + '" style="' + fontSize + ';' + thWidth + $t1('san_ji_mu_lu') +
-  fontSize + ';' + thBorderL + ';' + thWidth + '" bgcolor="' + thBgcolor + $t1('si_ji_mu_lu') +
-  fontSize + ';' + thBorderL + ';' + thWidth + '" bgcolor="' + thBgcolor + $t1('chu_li_ren') +
-  fontSize + ';' + thBorderL + ';' + thWidth + '" bgcolor="' + thBgcolor + $t1('you_xian_ji') +
-  fontSize + ';' + thBorderL + ';' + thWidth + '" bgcolor="' + thBgcolor + $t1('dai_ban_miao_shu') +
-  fontSize + ';' + thBorderL + ';' + thWidth + '" bgcolor="' + thBgcolor + $t1('ji_hua_wan_cheng_shi_jian') +
+  thBgcolor + '" style="' + fontSize + ';' + thWidth + $t1('">三级目录</th>
+            <th style="') +
+  fontSize + ';' + thBorderL + ';' + thWidth + '" bgcolor="' + thBgcolor + $t1('">四级目录</th>
+            <th style="') +
+  fontSize + ';' + thBorderL + ';' + thWidth + '" bgcolor="' + thBgcolor + $t1('">处理人</th>
+            <th style="') +
+  fontSize + ';' + thBorderL + ';' + thWidth + '" bgcolor="' + thBgcolor + $t1('">优先级</th>
+            <th style="') +
+  fontSize + ';' + thBorderL + ';' + thWidth + '" bgcolor="' + thBgcolor + $t1('">待办描述</th>
+            <th style="') +
+  fontSize + ';' + thBorderL + ';' + thWidth + '" bgcolor="' + thBgcolor + $t1('">计划完成时间</th>
+          </tr>
+        </thead>
+        <tbody>
+          ') +
 
 
 
@@ -177,12 +193,12 @@ const EmailContent: React.FC<IProps> = (props) => {
           backgroundColor: '#fff'
         }}>
           <div>
-            <span><b>{$t1('da_jia_hao')}</b></span>
+            <span><b>{$t1('大家好,')}</b></span>
           </div>
           <p style={{
             marginTop: 10, fontWeight: 600
           }}>
-            {location.host.includes('test') ? $t1('ce_shi_you_jian') : ''}{$t1('wo_shi_nin_de_zhuan_shu_shou_hou_zhi_chi')}{data?.CustomerName || ''}{$t1('de_hui_yi_ji_yao_qing_cha_shou')}
+            {location.host.includes('test') ? $t1('【测试邮件】') : ''}{$t1('我是您的专属售后支持，以下为本次与')}{data?.CustomerName || ''}{$t1('的会议纪要，请查收。')}
           </p>
           <div id="emailBody">
             <div style={{
@@ -190,7 +206,7 @@ const EmailContent: React.FC<IProps> = (props) => {
             }}>
               {
               hasKey(meetingTimeString) && <Fragment>
-                  <span style={{ fontWeight: 600 }}>{$t1('hui_yi_shi_jian')}</span>
+                  <span style={{ fontWeight: 600 }}>{$t1('会议时间：')}</span>
                   <span>
                     {/* { (subTask?.meetingWhen || []).join('-') } */}
                     {subTask?.meetingWhen || '-'}
@@ -199,7 +215,7 @@ const EmailContent: React.FC<IProps> = (props) => {
               }
               {
               hasKey(planTime) && <Fragment>
-                  <span style={{ fontWeight: 600 }}>{$t1('ji_hua_fu_wu_shi_jian')}</span>
+                  <span style={{ fontWeight: 600 }}>{$t1('计划服务时间：')}</span>
                   <span>
                     {data?.planVisitTime || ''}
                   </span>
@@ -216,7 +232,7 @@ const EmailContent: React.FC<IProps> = (props) => {
                 }}>
                   <span style={{
                   fontWeight: 600
-                }}>{$t1('hui_yi_di_dian')}</span>{subTask?.meetingLocation || ''}
+                }}>{$t1('会议地点：')}</span>{subTask?.meetingLocation || ''}
                 </div>
               </Fragment>
             }
@@ -225,7 +241,7 @@ const EmailContent: React.FC<IProps> = (props) => {
             }}>
               <div style={{
                 minWidth: 80, fontWeight: 600
-              }}>{$t1('yu_hui_ren_yuan')}</div>
+              }}>{$t1('与会人员：')}</div>
               <div>
                 <div style={{
                   display: 'flex', alignItems: 'center'
@@ -234,7 +250,7 @@ const EmailContent: React.FC<IProps> = (props) => {
                   hasKey(customPerson) && <Fragment>
                       <div style={{
                       minWidth: 80, fontWeight: 600
-                    }}>{$t1('ke_hu_ce')}</div>
+                    }}>{$t1('【客户侧】')}</div>
                       <span>
                         {subTask?.customerPeople || ''}
                       </span>
@@ -246,7 +262,7 @@ const EmailContent: React.FC<IProps> = (props) => {
                 }}>
                   <div style={{
                     minWidth: 80, fontWeight: 600
-                  }}>{$t1('teng_xun_ce')}</div>
+                  }}>{$t1('【腾讯侧】')}</div>
                   {
                   hasKey(tencentPersonString) && <span>
                       {subTask?.tencentPeople || ''}
@@ -271,7 +287,7 @@ const EmailContent: React.FC<IProps> = (props) => {
               }}>
                 <span style={{
                 fontWeight: 600
-              }}>{$t1('fu_wu_nei_rong')}</span>
+              }}>{$t1('服务内容')}</span>
               </div>
             }
             <div
@@ -284,7 +300,7 @@ const EmailContent: React.FC<IProps> = (props) => {
               hasKey(customerSentiment) && <Fragment>
                   <span style={{
                   fontWeight: 600
-                }}>{$t1('ke_qing')}</span>{customMap[data?.custom] || ''}
+                }}>{$t1('客情：')}</span>{customMap[data?.custom] || ''}
                 </Fragment>
               }
               {
@@ -305,7 +321,7 @@ const EmailContent: React.FC<IProps> = (props) => {
                 }}>
                   <span style={{
                   fontWeight: 600
-                }}>{$t1('bei_jing')}</span>
+                }}>{$t1('背景：')}</span>
                   <div dangerouslySetInnerHTML={{
                   __html: changeLine(data?.sensitiveReason)
                 }}></div>
@@ -322,7 +338,7 @@ const EmailContent: React.FC<IProps> = (props) => {
                 }}>
                   <span style={{
                   fontWeight: 600
-                }}>{$t1('nei_rong_2ptwtf')}</span>
+                }}>{$t1('内容：')}</span>
                   <div dangerouslySetInnerHTML={{
                   __html: changeLine(data?.taskDesc)
                 }}></div>
@@ -339,7 +355,7 @@ const EmailContent: React.FC<IProps> = (props) => {
               }}>
                 <span style={{
                 fontWeight: 600
-              }}>{$t1('hui_yi_nei_rong')}</span>
+              }}>{$t1('会议内容')}</span>
               </div>
             }
             {
@@ -352,7 +368,7 @@ const EmailContent: React.FC<IProps> = (props) => {
                 }}>
                   <span style={{
                   fontWeight: 600
-                }}>{$t1('hui_yi_biao_ti')}</span>{subTask?.meetingTitle || ''}
+                }}>{$t1('会议标题：')}</span>{subTask?.meetingTitle || ''}
                 </div>
               </Fragment>
             }
@@ -366,7 +382,7 @@ const EmailContent: React.FC<IProps> = (props) => {
                 }}>
                   <span style={{
                   fontWeight: 600
-                }}>{$t1('hui_yi_yi_ti')}</span>
+                }}>{$t1('会议议题：')}</span>
                   <div dangerouslySetInnerHTML={{
                   __html: changeLine(subTask?.meetingWhat)
                 }}></div>
@@ -383,7 +399,7 @@ const EmailContent: React.FC<IProps> = (props) => {
                 }}>
                   <span style={{
                   fontWeight: 600
-                }}>{$t1('hui_yi_jie_lun')}</span>
+                }}>{$t1('会议结论：')}</span>
                   <div style={{ marginTop: 20 }} dangerouslySetInnerHTML={{
                   __html: renderConclusionList(subTask?.meetingResult)
                 }}></div>
@@ -401,7 +417,7 @@ const EmailContent: React.FC<IProps> = (props) => {
                 }}>
                   <span style={{
                   fontWeight: 600
-                }}>{$t1('ren_wu_dai_ban')}</span>
+                }}>{$t1('任务待办')}</span>
                 </div>
                 <div
                 style={{
@@ -426,7 +442,7 @@ const EmailContent: React.FC<IProps> = (props) => {
                 }}>
                   <span style={{
                   fontWeight: 600
-                }}>{$t1('ru_you_ren_he_yi_wen_qing_tong_guo_yi')}</span>
+                }}>{$t1('如有任何疑问，请通过以下方式联系我们')}</span>
                 </div>
                 <div style={{
                 marginTop: 10,

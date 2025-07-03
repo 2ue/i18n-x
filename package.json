@@ -25,7 +25,8 @@
     "type-check": "tsc --noEmit",
     "prepublishOnly": "pnpm run build",
     "postpack": "echo '✅ 打包完成，可以使用 npm publish 发布'",
-    "extract": "rm -rf dist output locales test/temp coverage && pnpm build &&node dist/cli.cjs extract"
+    "extract": "rm -rf dist output locales test/temp coverage && pnpm build &&node dist/cli.cjs extract",
+    "rplkey": "pnpm build &&node dist/cli.cjs rpkey"
   },
   "keywords": [
     "i18n",

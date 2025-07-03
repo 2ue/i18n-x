@@ -11,13 +11,13 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 // 主题提供者组件
 const ThemeProvider: React.FC<{children: React.ReactNode;}> = ({ children }) => {
-  const [theme, setTheme] = useState<ThemeMode>($t1('xi_tong_mo_ren'));
+  const [theme, setTheme] = useState<ThemeMode>($t1('系统默认'));
 
   // 监听系统主题变化
   useEffect(() => {
     const checkSystemTheme = () => {
-      if (theme === $t1('xi_tong_mo_ren')) {
-        console.log($t1('jian_ce_xi_tong_zhu_ti_she_zhi'));
+      if (theme === $t1('系统默认')) {
+        console.log($t1('检测系统主题设置...'));
       }
     };
 
@@ -40,7 +40,7 @@ const ThemeProvider: React.FC<{children: React.ReactNode;}> = ({ children }) => 
 const useTheme = () => {
   const context = useContext(ThemeContext);
   if (!context) {
-    throw new Error($t1('bi_xu_zai_nei_bu_shi_yong'));
+    throw new Error($t1('useTheme必须在ThemeProvider内部使用'));
   }
   return context;
 };
@@ -68,21 +68,21 @@ interface UserState {
 
 function userReducer(state: UserState, action: UserAction): UserState {
   switch (action.type) {
-    case $t1('deng_lu'):
+    case $t1('登录'):
       return {
         ...state,
         user: action.payload,
         isLoading: false,
         error: null
       };
-    case $t1('deng_chu'):
+    case $t1('登出'):
       return {
         ...state,
         user: null,
         isLoading: false,
         error: null
       };
-    case $t1('geng_xin_jue_se'):
+    case $t1('更新角色'):
       return state.user ?
       {
         ...state,
@@ -92,7 +92,7 @@ function userReducer(state: UserState, action: UserAction): UserState {
         }
       } :
       state;
-    case $t1('geng_xin_deng_lu_shi_jian'):
+    case $t1('更新登录时间'):
       return state.user ?
       {
         ...state,
@@ -132,7 +132,7 @@ const UserProvider: React.FC<{children: React.ReactNode;}> = ({ children }) => {
 const useUser = () => {
   const context = useContext(UserContext);
   if (!context) {
-    throw new Error($t1('bi_xu_zai_nei_bu_shi_yong_1i6o40'));
+    throw new Error($t1('useUser必须在UserProvider内部使用'));
   }
   return context;
 };
@@ -172,11 +172,11 @@ const NotificationItem: React.FC<{
   // 使用useMemo优化渲染
   const notificationStyle = useMemo(() => {
     switch (notification.type) {
-      case $t1('cuo_wu'):
+      case $t1('错误'):
         return { borderColor: 'red', backgroundColor: 'lightpink' };
-      case $t1('jing_gao'):
+      case $t1('警告'):
         return { borderColor: 'orange', backgroundColor: 'lightyellow' };
-      case $t1('cheng_gong'):
+      case $t1('成功'):
         return { borderColor: 'green', backgroundColor: 'lightgreen' };
       default:
         return { borderColor: 'blue', backgroundColor: 'lightblue' };
@@ -196,7 +196,7 @@ const NotificationItem: React.FC<{
       <div style={{ display: 'flex', justifyContent: 'space-between' }}>
         <span>{notification.timestamp.toLocaleString()}</span>
         {!notification.read &&
-        <button onClick={handleMarkAsRead}>{$t1('biao_ji_wei_yi_du')}
+        <button onClick={handleMarkAsRead}>{$t1('标记为已读')}
 
         </button>
         }
@@ -207,14 +207,14 @@ const NotificationItem: React.FC<{
 
 // 通知列表组件
 const NotificationList: React.FC<{notifications: Notification[];}> = ({ notifications }) => {
-  const [filter, setFilter] = useState<'全部' | '未读' | '已读'>($t1('quan_bu'));
+  const [filter, setFilter] = useState<'全部' | '未读' | '已读'>($t1('全部'));
 
   // 使用useMemo优化过滤逻辑
   const filteredNotifications = useMemo(() => {
     switch (filter) {
-      case $t1('wei_du'):
+      case $t1('未读'):
         return notifications.filter((n) => !n.read);
-      case $t1('yi_du'):
+      case $t1('已读'):
         return notifications.filter((n) => n.read);
       default:
         return notifications;
@@ -224,19 +224,19 @@ const NotificationList: React.FC<{notifications: Notification[];}> = ({ notifica
   return (
     <div>
       <div style={{ marginBottom: '10px' }}>
-        <button onClick={() => setFilter($t1('quan_bu'))} disabled={filter === $t1('quan_bu')}>{$t1('quan_bu_tong_zhi')}
+        <button onClick={() => setFilter($t1('全部'))} disabled={filter === $t1('全部')}>{$t1('全部通知')}
 
         </button>
-        <button onClick={() => setFilter($t1('wei_du'))} disabled={filter === $t1('wei_du')}>{$t1('wei_du_tong_zhi')}
+        <button onClick={() => setFilter($t1('未读'))} disabled={filter === $t1('未读')}>{$t1('未读通知')}
 
         </button>
-        <button onClick={() => setFilter($t1('yi_du'))} disabled={filter === $t1('yi_du')}>{$t1('yi_du_tong_zhi')}
+        <button onClick={() => setFilter($t1('已读'))} disabled={filter === $t1('已读')}>{$t1('已读通知')}
 
         </button>
       </div>
 
       {filteredNotifications.length === 0 ?
-      <p>{$t1('mei_you')}{filter === $t1('quan_bu') ? '' : filter}{$t1('tong_zhi_3ko62')}</p> :
+      <p>{$t1('没有')}{filter === $t1('全部') ? '' : filter}{$t1('通知')}</p> :
 
       filteredNotifications.map((notification) =>
       <NotificationItem
@@ -304,33 +304,33 @@ const RegistrationForm: React.FC = () => {
 
     // 用户名验证
     if (!formState.username) {
-      newErrors.username = $t1('yong_hu_ming_bu_neng_wei_kong');
+      newErrors.username = $t1('用户名不能为空');
     } else if (formState.username.length < 3) {
-      newErrors.username = $t1('yong_hu_ming_zhi_shao_xu_yao_ge_zi_fu');
+      newErrors.username = $t1('用户名至少需要3个字符');
     }
 
     // 邮箱验证
     if (!formState.email) {
-      newErrors.email = $t1('you_xiang_bu_neng_wei_kong');
+      newErrors.email = $t1('邮箱不能为空');
     } else if (!/\S+@\S+\.\S+/.test(formState.email)) {
-      newErrors.email = $t1('qing_shu_ru_you_xiao_de_you_xiang_di_zhi');
+      newErrors.email = $t1('请输入有效的邮箱地址');
     }
 
     // 密码验证
     if (!formState.password) {
-      newErrors.password = $t1('mi_ma_bu_neng_wei_kong');
+      newErrors.password = $t1('密码不能为空');
     } else if (formState.password.length < 6) {
-      newErrors.password = $t1('mi_ma_zhi_shao_xu_yao_ge_zi_fu');
+      newErrors.password = $t1('密码至少需要6个字符');
     }
 
     // 确认密码验证
     if (formState.password !== formState.confirmPassword) {
-      newErrors.confirmPassword = $t1('liang_ci_shu_ru_de_mi_ma_bu_yi_zhi');
+      newErrors.confirmPassword = $t1('两次输入的密码不一致');
     }
 
     // 同意条款验证
     if (!formState.agreeTerms) {
-      newErrors.agreeTerms = $t1('qing_tong_yi_fu_wu_tiao_kuan');
+      newErrors.agreeTerms = $t1('请同意服务条款');
     }
 
     setErrors(newErrors);
@@ -353,7 +353,7 @@ const RegistrationForm: React.FC = () => {
 
       setSubmitResult({
         success: true,
-        message: $t1('zhu_ce_cheng_gong_qing_jian_cha_nin_de_you')
+        message: $t1('注册成功！请检查您的邮箱以激活账户。')
       });
 
       // 重置表单
@@ -367,7 +367,7 @@ const RegistrationForm: React.FC = () => {
     } catch (error) {
       setSubmitResult({
         success: false,
-        message: $t1('zhu_ce_shi_bai_qing_shao_hou_chong_shi')
+        message: $t1('注册失败，请稍后重试。')
       });
     } finally {
       setIsSubmitting(false);
@@ -376,7 +376,7 @@ const RegistrationForm: React.FC = () => {
 
   return (
     <div style={{ maxWidth: '500px', margin: '0 auto', padding: '20px' }}>
-      <h2>{$t1('yong_hu_zhu_ce')}</h2>
+      <h2>{$t1('用户注册')}</h2>
 
       {submitResult &&
       <div style={{
@@ -391,7 +391,7 @@ const RegistrationForm: React.FC = () => {
 
       <form onSubmit={handleSubmit}>
         <div style={{ marginBottom: '15px' }}>
-          <label htmlFor="username" style={{ display: 'block', marginBottom: '5px' }}>{$t1('yong_hu_ming_yaavbh')}
+          <label htmlFor="username" style={{ display: 'block', marginBottom: '5px' }}>{$t1('用户名:')}
 
           </label>
           <input
@@ -408,7 +408,7 @@ const RegistrationForm: React.FC = () => {
         </div>
 
         <div style={{ marginBottom: '15px' }}>
-          <label htmlFor="email" style={{ display: 'block', marginBottom: '5px' }}>{$t1('you_xiang')}
+          <label htmlFor="email" style={{ display: 'block', marginBottom: '5px' }}>{$t1('邮箱:')}
 
           </label>
           <input
@@ -425,7 +425,7 @@ const RegistrationForm: React.FC = () => {
         </div>
 
         <div style={{ marginBottom: '15px' }}>
-          <label htmlFor="password" style={{ display: 'block', marginBottom: '5px' }}>{$t1('mi_ma_36oge0')}
+          <label htmlFor="password" style={{ display: 'block', marginBottom: '5px' }}>{$t1('密码:')}
 
           </label>
           <input
@@ -442,7 +442,7 @@ const RegistrationForm: React.FC = () => {
         </div>
 
         <div style={{ marginBottom: '15px' }}>
-          <label htmlFor="confirmPassword" style={{ display: 'block', marginBottom: '5px' }}>{$t1('que_ren_mi_ma')}
+          <label htmlFor="confirmPassword" style={{ display: 'block', marginBottom: '5px' }}>{$t1('确认密码:')}
 
           </label>
           <input
@@ -465,7 +465,7 @@ const RegistrationForm: React.FC = () => {
               name="agreeTerms"
               checked={formState.agreeTerms}
               onChange={handleInputChange}
-              style={{ marginRight: '10px' }} />{$t1('wo_tong_yi_fu_wu_tiao_kuan_he_yin_si')}
+              style={{ marginRight: '10px' }} />{$t1('我同意服务条款和隐私政策')}
 
 
           </label>
@@ -486,7 +486,7 @@ const RegistrationForm: React.FC = () => {
             cursor: isSubmitting ? 'not-allowed' : 'pointer'
           }}>
 
-          {isSubmitting ? $t1('zhu_ce_zhong') : $t1('zhu_ce')}
+          {isSubmitting ? $t1('注册中...') : $t1('注册')}
         </button>
       </form>
     </div>);
@@ -499,25 +499,25 @@ const App: React.FC = () => {
     <ThemeProvider>
       <UserProvider>
         <div style={{ padding: '20px' }}>
-          <h1>{$t1('he_shi_li')}</h1>
+          <h1>{$t1('React Hooks 和 TypeScript 示例')}</h1>
 
           <section style={{ marginBottom: '30px' }}>
-            <h2>{$t1('zhu_ti_she_zhi')}</h2>
+            <h2>{$t1('主题设置')}</h2>
             <ThemeSelector />
           </section>
 
           <section style={{ marginBottom: '30px' }}>
-            <h2>{$t1('yong_hu_xin_xi')}</h2>
+            <h2>{$t1('用户信息')}</h2>
             <UserProfile />
           </section>
 
           <section style={{ marginBottom: '30px' }}>
-            <h2>{$t1('tong_zhi_zhong_xin')}</h2>
+            <h2>{$t1('通知中心')}</h2>
             <NotificationCenter />
           </section>
 
           <section>
-            <h2>{$t1('yong_hu_zhu_ce')}</h2>
+            <h2>{$t1('用户注册')}</h2>
             <RegistrationForm />
           </section>
         </div>
@@ -532,15 +532,15 @@ const ThemeSelector: React.FC = () => {
 
   return (
     <div>
-      <p>{$t1('dang_qian_zhu_ti')}{theme}</p>
+      <p>{$t1('当前主题:')}{theme}</p>
       <div>
-        <button onClick={() => setTheme($t1('qian_se_mo_shi'))} disabled={theme === $t1('qian_se_mo_shi')}>{$t1('qian_se_mo_shi')}
+        <button onClick={() => setTheme($t1('浅色模式'))} disabled={theme === $t1('浅色模式')}>{$t1('浅色模式')}
 
         </button>
-        <button onClick={() => setTheme($t1('shen_se_mo_shi'))} disabled={theme === $t1('shen_se_mo_shi')}>{$t1('shen_se_mo_shi')}
+        <button onClick={() => setTheme($t1('深色模式'))} disabled={theme === $t1('深色模式')}>{$t1('深色模式')}
 
         </button>
-        <button onClick={() => setTheme($t1('xi_tong_mo_ren'))} disabled={theme === $t1('xi_tong_mo_ren')}>{$t1('xi_tong_mo_ren')}
+        <button onClick={() => setTheme($t1('系统默认'))} disabled={theme === $t1('系统默认')}>{$t1('系统默认')}
 
         </button>
       </div>
@@ -556,11 +556,11 @@ const UserProfile: React.FC = () => {
   // 模拟登录
   const handleLogin = () => {
     dispatch({
-      type: $t1('deng_lu'),
+      type: $t1('登录'),
       payload: {
         id: 1,
-        name: $t1('ce_shi_yong_hu'),
-        role: $t1('fang_ke'),
+        name: $t1('测试用户'),
+        role: $t1('访客'),
         lastLogin: new Date()
       }
     });
@@ -568,48 +568,48 @@ const UserProfile: React.FC = () => {
 
   // 模拟登出
   const handleLogout = () => {
-    dispatch({ type: $t1('deng_chu') });
+    dispatch({ type: $t1('登出') });
   };
 
   // 更新角色
   const handleRoleChange = (role: User['role']) => {
     dispatch({
-      type: $t1('geng_xin_jue_se'),
+      type: $t1('更新角色'),
       payload: role
     });
   };
 
   // 更新登录时间
   const handleUpdateLoginTime = () => {
-    dispatch({ type: $t1('geng_xin_deng_lu_shi_jian') });
+    dispatch({ type: $t1('更新登录时间') });
   };
 
   if (isLoading) {
-    return <p>{$t1('jia_zai_zhong_1jxgrp')}</p>;
+    return <p>{$t1('加载中...')}</p>;
   }
 
   return (
     <div>
       {user ?
       <div>
-          <p>{$t1('yong_hu_22cq25')}{user.id}</p>
-          <p>{$t1('yong_hu_ming_yaavbh')}{user.name}</p>
-          <p>{$t1('jue_se_37spz3')}{user.role}</p>
-          <p>{$t1('zui_hou_deng_lu')}{user.lastLogin.toLocaleString()}</p>
+          <p>{$t1('用户ID:')}{user.id}</p>
+          <p>{$t1('用户名:')}{user.name}</p>
+          <p>{$t1('角色:')}{user.role}</p>
+          <p>{$t1('最后登录:')}{user.lastLogin.toLocaleString()}</p>
 
           <div style={{ marginTop: '10px' }}>
-            <button onClick={handleLogout}>{$t1('deng_chu')}</button>
-            <button onClick={handleUpdateLoginTime}>{$t1('geng_xin_deng_lu_shi_jian')}</button>
+            <button onClick={handleLogout}>{$t1('登出')}</button>
+            <button onClick={handleUpdateLoginTime}>{$t1('更新登录时间')}</button>
 
             <div style={{ marginTop: '10px' }}>
-              <p>{$t1('geng_gai_jue_se')}</p>
-              <button onClick={() => handleRoleChange($t1('guan_li_yuan'))} disabled={user.role === $t1('guan_li_yuan')}>{$t1('guan_li_yuan')}
+              <p>{$t1('更改角色:')}</p>
+              <button onClick={() => handleRoleChange($t1('管理员'))} disabled={user.role === $t1('管理员')}>{$t1('管理员')}
 
             </button>
-              <button onClick={() => handleRoleChange($t1('bian_ji_zhe'))} disabled={user.role === $t1('bian_ji_zhe')}>{$t1('bian_ji_zhe')}
+              <button onClick={() => handleRoleChange($t1('编辑者'))} disabled={user.role === $t1('编辑者')}>{$t1('编辑者')}
 
             </button>
-              <button onClick={() => handleRoleChange($t1('fang_ke'))} disabled={user.role === $t1('fang_ke')}>{$t1('fang_ke')}
+              <button onClick={() => handleRoleChange($t1('访客'))} disabled={user.role === $t1('访客')}>{$t1('访客')}
 
             </button>
             </div>
@@ -617,8 +617,8 @@ const UserProfile: React.FC = () => {
         </div> :
 
       <div>
-          <p>{$t1('wei_deng_lu')}</p>
-          <button onClick={handleLogin}>{$t1('deng_lu')}</button>
+          <p>{$t1('未登录')}</p>
+          <button onClick={handleLogin}>{$t1('登录')}</button>
         </div>
       }
     </div>);
@@ -630,25 +630,25 @@ const NotificationCenter: React.FC = () => {
   const [notifications, setNotifications] = useState<Notification[]>([
   {
     id: '1',
-    title: $t1('xi_tong_tong_zhi'),
-    message: $t1('huan_ying_shi_yong_ben_xi_tong_zhe_shi_yi'),
-    type: $t1('xin_xi'),
+    title: $t1('系统通知'),
+    message: $t1('欢迎使用本系统，这是一条测试通知。'),
+    type: $t1('信息'),
     read: false,
     timestamp: new Date(Date.now() - 3600000)
   },
   {
     id: '2',
-    title: $t1('an_quan_jing_gao'),
-    message: $t1('nin_de_zhang_hu_zai_xin_she_bei_shang_deng'),
-    type: $t1('jing_gao'),
+    title: $t1('安全警告'),
+    message: $t1('您的账户在新设备上登录，请确认是否为本人操作。'),
+    type: $t1('警告'),
     read: false,
     timestamp: new Date(Date.now() - 7200000)
   },
   {
     id: '3',
-    title: $t1('cao_zuo_cheng_gong'),
-    message: $t1('nin_de_ge_ren_zi_liao_yi_cheng_gong_geng_220rb3'),
-    type: $t1('cheng_gong'),
+    title: $t1('操作成功'),
+    message: $t1('您的个人资料已成功更新。'),
+    type: $t1('成功'),
     read: true,
     timestamp: new Date(Date.now() - 86400000)
   }]
@@ -665,13 +665,13 @@ const NotificationCenter: React.FC = () => {
   }, []);
 
   const handleAddNotification = () => {
-    const types: Notification['type'][] = [$t1('xin_xi'), $t1('jing_gao'), $t1('cuo_wu'), $t1('cheng_gong')];
+    const types: Notification['type'][] = [$t1('信息'), $t1('警告'), $t1('错误'), $t1('成功')];
     const randomType = types[Math.floor(Math.random() * types.length)];
 
     const newNotification: Notification = {
       id: Date.now().toString(),
-      title: randomType + $t1('tong_zhi_3ko62'),
-      message: $t1('zhe_shi_yi_tiao_xin_de') + randomType + $t1('tong_zhi_sheng_cheng_yu') + new Date().toLocaleTimeString() + '\u3002',
+      title: randomType + $t1('通知'),
+      message: $t1('这是一条新的') + randomType + $t1('通知，生成于') + new Date().toLocaleTimeString() + '\u3002',
       type: randomType,
       read: false,
       timestamp: new Date()
@@ -698,15 +698,15 @@ const NotificationCenter: React.FC = () => {
     <div>
       <div style={{ marginBottom: '10px', display: 'flex', justifyContent: 'space-between' }}>
         <div>
-          <button onClick={handleAddNotification}>{$t1('tian_jia_tong_zhi')}</button>
-          <button onClick={handleMarkAllAsRead} disabled={unreadCount === 0}>{$t1('quan_bu_biao_wei_yi_du')}
+          <button onClick={handleAddNotification}>{$t1('添加通知')}</button>
+          <button onClick={handleMarkAllAsRead} disabled={unreadCount === 0}>{$t1('全部标为已读')}
 
           </button>
-          <button onClick={handleClearAll} disabled={notifications.length === 0}>{$t1('qing_kong_suo_you_tong_zhi')}
+          <button onClick={handleClearAll} disabled={notifications.length === 0}>{$t1('清空所有通知')}
 
           </button>
         </div>
-        <div>{$t1('wei_du_tong_zhi_1p1x29')}
+        <div>{$t1('未读通知:')}
           <strong>{unreadCount}</strong>
         </div>
       </div>
