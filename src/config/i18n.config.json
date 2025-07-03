@@ -24,5 +24,10 @@
   "output": {
     "prettyJson": true,
     "localeFileName": "{locale}.json"
+  },
+  "replacement": {
+    "functionName": "$t",
+    "quoteType": "single",
+    "useOriginalTextAsKey": false
   }
 }

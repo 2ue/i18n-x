@@ -41,6 +41,7 @@ export interface I18nConfig {
   replacement?: {
     functionName?: string; // 替换函数名，默认 '$t'
     quoteType?: 'single' | 'double'; // 引号类型，默认 'single'
+    useOriginalTextAsKey?: boolean; // 是否使用原始中文文本作为key，默认 false
     autoImport?: {
       enabled?: boolean; // 是否启用自动引入，默认 false
       insertPosition?: 'top' | 'afterImports'; // 插入位置，默认 'afterImports'

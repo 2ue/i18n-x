@@ -112,9 +112,9 @@ export function createI18nKey(text: string): string {
   const baseKey = (
     pinyin(han, {
       toneType: pinyinOptions.toneType ?? 'none',
-      type: 'array'
-    }) ?? []).
-    join(separator);
+      type: 'array',
+    }) ?? []
+  ).join(separator);
 
   if (!baseKey) {
     return '';

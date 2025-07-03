@@ -36,6 +36,7 @@
   "replacement": {
     "functionName": "$t1",
     "quoteType": "single",
+    "useOriginalTextAsKey": true,
     "autoImport": {
       "enabled": true,
       "insertPosition": "afterImports",

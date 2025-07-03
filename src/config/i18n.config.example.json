@@ -40,6 +40,7 @@
   "replacement": {
     "functionName": "t",
     "quoteType": "single",
+    "useOriginalTextAsKey": false,
     "autoImport": {
       "enabled": true,
       "insertPosition": "afterImports",
