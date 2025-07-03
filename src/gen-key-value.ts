@@ -143,5 +143,3 @@ export async function flushI18nCache(): Promise<void> {
     Logger.info(`已保存 ${keyCount} 个翻译键到 ${outputFilePath}`, 'normal');
   }
 }
-
-export { keyValueCache };

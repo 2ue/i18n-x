@@ -6,7 +6,6 @@ import { Logger } from './logger';
  * 用于验证所有配置项是否正确使用，没有硬编码值
  */
 export class ConfigValidator {
-
   /**
    * 检查配置的一致性和完整性
    */
@@ -59,7 +58,10 @@ export class ConfigValidator {
       }
 
       // 检查日志配置
-      if (config.logging?.level && !['minimal', 'normal', 'verbose'].includes(config.logging.level)) {
+      if (
+        config.logging?.level &&
+        !['minimal', 'normal', 'verbose'].includes(config.logging.level)
+      ) {
         errors.push('logging.level 必须是 minimal、normal 或 verbose 之一');
       }
 
@@ -67,7 +69,6 @@ export class ConfigValidator {
       if (config.output?.localeFileName && !config.output.localeFileName.includes('{locale}')) {
         warnings.push('localeFileName 建议包含 {locale} 占位符');
       }
-
     } catch (error) {
       errors.push(`配置检查时发生错误: ${error}`);
     }
@@ -76,12 +77,12 @@ export class ConfigValidator {
 
     if (!isValid) {
       Logger.error('配置验证失败:', 'minimal');
-      errors.forEach(error => Logger.error(`  - ${error}`, 'minimal'));
+      errors.forEach((error) => Logger.error(`  - ${error}`, 'minimal'));
     }
 
     if (warnings.length > 0) {
       Logger.warn('配置警告:', 'normal');
-      warnings.forEach(warning => Logger.warn(`  - ${warning}`, 'normal'));
+      warnings.forEach((warning) => Logger.warn(`  - ${warning}`, 'normal'));
     }
 
     if (isValid && warnings.length === 0) {
@@ -100,8 +101,10 @@ export class ConfigValidator {
     Logger.verbose('检查配置一致性...');
 
     // 检查文件名生成是否使用了配置
-    const expectedFileName = (config.output?.localeFileName ?? '{locale}.json')
-      .replace('{locale}', config.locale);
+    const expectedFileName = (config.output?.localeFileName ?? '{locale}.json').replace(
+      '{locale}',
+      config.locale
+    );
     Logger.verbose(`预期的语言文件名: ${expectedFileName}`);
 
     // 检查替换函数名是否一致
@@ -116,4 +119,4 @@ export class ConfigValidator {
 
     Logger.verbose('配置一致性检查完成');
   }
-} 
+}

@@ -3,18 +3,22 @@ import { Command } from 'commander';
 const inquirer = require('inquirer').default ?? require('inquirer');
 import { loadConfig, ConfigManager } from './config';
 import { scanAndReplaceAll } from './ast';
-import { writeJson } from './utils/fs';
+import {
+  writeJson,
+  findTargetFiles,
+  readFile,
+  writeFileWithTempDir,
+  readJsonSync,
+} from './utils/fs';
 import { defaultConfig } from './config/default.config';
 import { version } from '../package.json';
 import { Logger } from './utils/logger';
 import { ConfigValidator } from './utils/config-validator';
+import * as path from 'path';
 
 const program = new Command();
 
-program
-  .name('i18n-xy')
-  .description('自动提取React项目中的中文字符串并国际化')
-  .version(version);
+program.name('i18n-xy').description('自动提取React项目中的中文字符串并国际化').version(version);
 
 program
   .command('init')
@@ -94,6 +98,51 @@ program
       await translateCommand(options);
     } catch (error) {
       Logger.error(`翻译失败: ${error}`, 'minimal');
+      process.exit(1);
+    }
+  });
+
+program
+  .command('rpkey')
+  .description('根据配置批量替换 $t(key) 为 $t(value)')
+  .option('-c, --config <path>', '指定配置文件路径', './i18n.config.json')
+  .action(async (options) => {
+    try {
+      Logger.info(`加载配置文件: ${options.config}`, 'verbose');
+      const configObj = loadConfig(options.config);
+      ConfigManager.init(configObj);
+      const validation = ConfigValidator.validateConfigUsage();
+      if (!validation.isValid) {
+        Logger.error('配置验证失败，无法继续执行', 'minimal');
+        process.exit(1);
+      }
+      ConfigValidator.checkConfigConsistency();
+      Logger.info('开始批量替换 key...', 'normal');
+
+      const config = ConfigManager.get();
+      const filenameTemplate =
+        config.output?.localeFileName ?? defaultConfig.output!.localeFileName!;
+      const localeFileName = filenameTemplate.replace('{locale}', config.locale);
+      const localeFilePath = path.resolve(process.cwd(), config.outputDir, localeFileName);
+      const translations = readJsonSync(localeFilePath) as Record<string, string>;
+
+      const files = await findTargetFiles(config.include, config.exclude);
+      for (const file of files) {
+        const content = await readFile(file);
+        const func = config.replacement?.functionName ?? defaultConfig.replacement!.functionName!;
+        const quoteType = config.replacement?.quoteType ?? defaultConfig.replacement!.quoteType!;
+        const quote = quoteType === 'single' ? "'" : '"';
+        const regex = new RegExp(`\\${func}\\(${quote}([^${quote}]+)${quote}\\)`, 'g');
+        const updated = content.replace(regex, (match, key) => {
+          const value = translations[key];
+          return value ? `${func}(${quote}${value}${quote})` : match;
+        });
+        await writeFileWithTempDir(file, updated, config.tempDir);
+        Logger.verbose(`文件已处理: ${file}`);
+      }
+      Logger.success('批量替换完成', 'minimal');
+    } catch (error) {
+      Logger.error(`替换过程中发生错误: ${error}`, 'minimal');
       process.exit(1);
     }
   });
