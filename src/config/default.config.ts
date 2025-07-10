@@ -4,7 +4,7 @@ import { I18nConfig } from './type';
 export const defaultConfig: I18nConfig = {
   // 基础语言配置
   locale: 'zh-CN',
-  fallbackLocale: 'en-US',
+  displayLanguage: 'en-US',
   outputDir: 'locales',
   // tempDir: undefined,  // 可选，不设置则直接修改源文件
 

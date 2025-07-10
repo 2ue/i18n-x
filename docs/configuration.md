@@ -9,7 +9,7 @@
 ```json
 {
   "locale": "zh-CN",
-  "fallbackLocale": "en-US",
+  "displayLanguage": "en-US",
   "outputDir": "locales",
   "tempDir": "temp",
   "include": ["src/**/*.{js,jsx,ts,tsx}"],
@@ -66,7 +66,7 @@
 - **默认值**: `"zh-CN"`
 - **描述**: 主要语言代码，用于生成语言文件名
 
-#### `fallbackLocale`
+#### `displayLanguage`
 - **类型**: `string`
 - **默认值**: `"en-US"`
 - **描述**: 回退语言代码，在翻译失败时使用
@@ -85,7 +85,7 @@
 ```json
 {
   "locale": "zh-CN",
-  "fallbackLocale": "en-US",
+  "displayLanguage": "en-US",
   "outputDir": "public/locales",
   "tempDir": "temp/i18n-output"
 }

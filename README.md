@@ -64,7 +64,7 @@ i18n-xy translate --test -f zh -t en -i "你好世界"
 ```json
 {
   "locale": "zh-CN",
-  "fallbackLocale": "en-US",
+  "displayLanguage": "en-US",
   "outputDir": "locales",
   "include": [
     "src/**/*.{js,jsx,ts,tsx}",

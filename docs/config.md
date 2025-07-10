@@ -45,14 +45,14 @@ i18nx extract -c ./my-custom-config.json
 }
 ```
 
-#### `fallbackLocale` (可选)
+#### `displayLanguage` (可选)
 - **类型**: `string`
 - **默认值**: `"en-US"`
 - **说明**: 备用语言地区代码，用于未来扩展多语言支持
 
 ```json
 {
-  "fallbackLocale": "en-US"
+  "displayLanguage": "en-US"
 }
 ```
 
@@ -911,7 +911,7 @@ Duplicate key "huan_ying" found with different content
 ```json
 {
   "locale": "zh-CN",
-  "fallbackLocale": "en-US",
+  "displayLanguage": "en-US",
   "outputDir": "locales",
   "tempDir": "temp",
   "include": [

@@ -1,6 +1,6 @@
 {
   "locale": "zh-CN",
-  "fallbackLocale": "en-US",
+  "displayLanguage": "en-US",
   "outputDir": "locales",
   "include": [
     "src/**/*.{js,ts,jsx,tsx}"

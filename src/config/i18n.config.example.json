@@ -1,6 +1,6 @@
 {
   "locale": "zh-CN",
-  "fallbackLocale": "en-US",
+  "displayLanguage": "en-US",
   "outputDir": "locales",
   "tempDir": "temp-i18n",
   "include": [

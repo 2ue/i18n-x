@@ -59,7 +59,7 @@ export async function translateCommand(options: TranslateOptions): Promise<void>
 
   // 确定翻译方向
   const defaultSourceLang = config.translation.defaultSourceLang ?? 'zh';
-  const defaultTargetLang = config.translation.defaultTargetLang ?? config.fallbackLocale ?? 'en';
+  const defaultTargetLang = config.translation.defaultTargetLang ?? config.displayLanguage ?? 'en';
   const from = options.from ?? defaultSourceLang;
   const to = options.to ?? defaultTargetLang;
 
@@ -80,7 +80,7 @@ export async function translateCommand(options: TranslateOptions): Promise<void>
       // 没有传递任何参数时，使用默认行为：读取配置的outputDir下的默认语言文件
       const outputDir = config.outputDir ?? 'locales';
       const sourceLocale = config.locale ?? 'zh-CN';
-      const targetLocale = config.fallbackLocale ?? 'en-US';
+      const targetLocale = config.displayLanguage ?? 'en-US';
 
       Logger.info(
         `未指定翻译内容，将从 ${outputDir} 目录读取 ${sourceLocale}.json 文件并翻译成 ${targetLocale}`,
@@ -164,7 +164,7 @@ async function handleTranslateJsonFile(
   incremental: boolean = true
 ): Promise<void> {
   // 推导目标语言的Locale
-  const targetLocale = ConfigManager.get().fallbackLocale || 'en-US';
+  const targetLocale = ConfigManager.get().displayLanguage || 'en-US';
 
   const { outputPath, totalCount, successCount, skippedCount } =
     await manager.translateLanguageFile(jsonPath, targetLocale, from, to, incremental);
@@ -199,7 +199,7 @@ async function handleTranslateBatchFiles(
   const config = ConfigManager.get();
   const outputDir = config.outputDir ?? './locales';
   const sourceLocale = config.locale ?? from;
-  const targetLocale = config.fallbackLocale ?? 'en-US';
+  const targetLocale = config.displayLanguage ?? 'en-US';
 
   const sourcePath = path.join(outputDir, `${sourceLocale}.json`);
   if (!fileExists(sourcePath)) {

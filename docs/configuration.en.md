@@ -9,7 +9,7 @@ The configuration file uses JSON format and includes the following main sections
 ```json
 {
   "locale": "zh-CN",
-  "fallbackLocale": "en-US",
+  "displayLanguage": "en-US",
   "outputDir": "locales",
   "tempDir": "temp",
   "include": ["src/**/*.{js,jsx,ts,tsx}"],
@@ -66,7 +66,7 @@ The configuration file uses JSON format and includes the following main sections
 - **Default**: `"zh-CN"`
 - **Description**: Primary language code for generating language file names
 
-#### `fallbackLocale`
+#### `displayLanguage`
 - **Type**: `string`
 - **Default**: `"en-US"`
 - **Description**: Fallback language code used when translation fails
@@ -85,7 +85,7 @@ The configuration file uses JSON format and includes the following main sections
 ```json
 {
   "locale": "zh-CN",
-  "fallbackLocale": "en-US",
+  "displayLanguage": "en-US",
   "outputDir": "public/locales",
   "tempDir": "temp/i18n-output"
 }

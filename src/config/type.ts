@@ -1,7 +1,7 @@
 export interface I18nConfig {
   // 基础语言配置
   locale: string;
-  fallbackLocale?: string;
+  displayLanguage?: string;
   outputDir: string;
   tempDir?: string;
 

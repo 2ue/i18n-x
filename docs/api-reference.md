@@ -323,7 +323,7 @@ const output = importManager.addEmptyLineToOutput(generatedCode);
 ```typescript
 interface I18nConfig {
   locale: string;
-  fallbackLocale: string;
+  displayLanguage: string;
   outputDir: string;
   tempDir?: string;
   include: string[];

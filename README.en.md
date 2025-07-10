@@ -64,7 +64,7 @@ Configuration file example (`i18n.config.json`):
 ```json
 {
   "locale": "zh-CN",
-  "fallbackLocale": "en-US",
+  "displayLanguage": "en-US",
   "outputDir": "locales",
   "include": [
     "src/**/*.{js,jsx,ts,tsx}",
