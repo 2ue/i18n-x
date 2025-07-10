@@ -2,24 +2,24 @@ import { useTranslation } from 'react-i18next';
 const { $t1 } = useTranslation();
 
 // 普通字符串
-const zh1 = $t1('你好，世界'); // 模板字符串
-const zh2 = $t1('欢迎, 用户') + userName;
+const zh1 = $t1('ni_hao_shi_jie'); // 模板字符串
+const zh2 = $t1('huan_ying_yong_hu_if6ymy') + userName;
 // 对象属性
-const obj = { label: $t1('提交'), desc: $t1('描述') + desc };
+const obj = { label: $t1('ti_jiao'), desc: $t1('miao_shu') + desc };
 // 数组
-const arr = [$t1('首页'), $t1('关于我们'), $t1('动态') + info];
+const arr = [$t1('shou_ye'), $t1('guan_yu_wo_men'), $t1('dong_tai') + info];
 // 多层嵌套
 function render() {
   return {
-    title: $t1('标题'),
-    content: $t1('内容') + content,
-    footer: [$t1('确定'), $t1('取消')]
+    title: $t1('biao_ti'),
+    content: $t1('nei_rong') + content,
+    footer: [$t1('que_ding'), $t1('qu_xiao')]
   };
 }
 // 注释中的中文（不应被提取）
 // 这是注释：测试
 /* 块注释：测试 */
 // 变量名为中文
-const 变量 = $t1('变量值');
+const 变量 = $t1('bian_liang_zhi');
 // 复杂表达式
-const msg = isVip ? $t1('尊贵会员') : $t1('普通用户');
+const msg = isVip ? $t1('zun_gui_hui_yuan') : $t1('pu_tong_yong_hu');

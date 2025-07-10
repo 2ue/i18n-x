@@ -6,9 +6,9 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';const { $t1 } = useTranslation();export function TextNodes() {
   return (
     <div>
-      <h1>{$t1('欢迎使用我们的系统')}</h1>
-      <p>{$t1('这是一个基础组件')}</p>
-      <span>{$t1('包含中文文本')}</span>
+      <h1>{$t1('huan_ying_shi_yong_wo_men_de_xi_tong')}</h1>
+      <p>{$t1('zhe_shi_yi_ge_ji_chu_zu_jian')}</p>
+      <span>{$t1('bao_han_zhong_wen_wen_ben')}</span>
     </div>);
 
 }
@@ -17,9 +17,9 @@ import { useTranslation } from 'react-i18next';const { $t1 } = useTranslation();
 export function AttributeComponent() {
   return (
     <div>
-      <input placeholder={$t1('请输入密码')} title={$t1('密码输入框')} />
-      <button aria-label={$t1('提交表单')}>{$t1('提交')}</button>
-      <img src="/logo.png" alt={$t1('公司logo')} />
+      <input placeholder={$t1('qing_shu_ru_mi_ma')} title={$t1('mi_ma_shu_ru_kuang')} />
+      <button aria-label={$t1('ti_jiao_biao_dan')}>{$t1('ti_jiao')}</button>
+      <img src="/logo.png" alt={$t1('gong_si')} />
     </div>);
 
 }
@@ -28,9 +28,9 @@ function test() {
   const api = '/fe-api/micro-app/antool';
   const code = 404;
   if (code === 404) {
-    throw new Error($t1('请求接口') + api + $t1('失败: ') + code);
+    throw new Error($t1('qing_qiu_jie_kou') + api + $t1('shi_bai') + code);
   } else {
-    throw new Error($t1('请求接口失败'));
+    throw new Error($t1('qing_qiu_jie_kou_shi_bai'));
   }
 }
 
@@ -38,7 +38,7 @@ function test() {
 export function ExpressionContainer() {
   return (
     <div>
-      <p>{$t1('内容详情')}</p>
+      <p>{$t1('nei_rong_xiang_qing')}</p>
       {true && '条件渲染的文本'}
       {false || '逻辑或的文本'}
     </div>);
@@ -50,8 +50,8 @@ export function ConditionalRendering() {
   const isVisible = true;
   return (
     <div>
-      {isVisible && <p>{$t1('显示内容')}</p>}
-      {isVisible ? <span>{$t1('可见状态')}</span> : <span>{$t1('隐藏状态')}</span>}
+      {isVisible && <p>{$t1('xian_shi_nei_rong')}</p>}
+      {isVisible ? <span>{$t1('ke_jian_zhuang_tai')}</span> : <span>{$t1('yin_cang_zhuang_tai')}</span>}
     </div>);
 
 }
@@ -71,12 +71,12 @@ export function ArrayLiterals() {
   return (
     <div>
       <ul>
-        {[$t1('确定'), $t1('取消')].map((txt) => <li key={txt}>{txt}</li>)}
+        {[$t1('que_ding'), $t1('qu_xiao')].map((txt) => <li key={txt}>{txt}</li>)}
       </ul>
       <select>
         {[
-        { label: $t1('选项一'), value: 1 },
-        { label: $t1('选项二'), value: 2 }].
+        { label: $t1('xuan_xiang_yi'), value: 1 },
+        { label: $t1('xuan_xiang_er'), value: 2 }].
         map((option) =>
         <option key={option.value} value={option.value}>{option.label}</option>
         )}
@@ -87,15 +87,15 @@ export function ArrayLiterals() {
 
 // JSX属性中的表达式
 export function AttributeExpressions() {
-  const placeholder = $t1('请输入内容');
+  const placeholder = $t1('qing_shu_ru_nei_rong');
   const isRequired = true;
 
   return (
     <div>
       <input
         placeholder={placeholder}
-        title={$t1('提示：') + $t1('输入提示')}
-        aria-required={isRequired ? $t1('必填项目') : $t1('可选项目')} />
+        title={$t1('ti_shi') + $t1('shu_ru_ti_shi')}
+        aria-required={isRequired ? $t1('bi_tian_xiang_mu') : $t1('ke_xuan_xiang_mu')} />
 
     </div>);
 
@@ -103,10 +103,10 @@ export function AttributeExpressions() {
 
 // 复杂JSX结构
 export function ComplexJSX() {
-  const fileName = $t1('重要文档.pdf');
+  const fileName = $t1('zhong_yao_wen_dang');
   const items = [
-  { id: 1, name: $t1('项目一') },
-  { id: 2, name: $t1('项目二') }];
+  { id: 1, name: $t1('xiang_mu_yi') },
+  { id: 2, name: $t1('xiang_mu_er') }];
 
 
   function test() {
@@ -151,8 +151,8 @@ export function ComplexJSX() {
 
   return (
     <div className="modal">
-      <h2>{$t1('确认删除')}</h2>
-      <p>{$t1('确定要删除"')}{fileName}{$t1('"吗？')}</p>
+      <h2>{$t1('que_ren_shan_chu')}</h2>
+      <p>{$t1('que_ding_yao_shan_chu')}{fileName}{$t1('ma')}</p>
       <div>
         {items.map((item) =>
         <div key={item.id} className="item">
@@ -161,8 +161,8 @@ export function ComplexJSX() {
         )}
       </div>
       <div className="buttons">
-        <button>{$t1('确认')}</button>
-        <button>{$t1('取消')}</button>
+        <button>{$t1('que_ren')}</button>
+        <button>{$t1('qu_xiao')}</button>
       </div>
     </div>);
 
@@ -170,12 +170,12 @@ export function ComplexJSX() {
 
 
 const renderTodoList = (list = [], treeIdMap) => {
-  if (!list.length) return $t1('<div>暂无数据</div>');
+  if (!list.length) return $t1('zan_wu_shu_ju_1czcgv');
   const cols = list.
   map((v) => `
         <tr>
-          <td bgcolor="${thBgcolor}" style="${fontSize};${thBorderT}">${treeIdMap?.[v.level3]?.Name || $t1('其它诉求')}</td>
-          <td bgcolor="${thBgcolor}" style="${fontSize};${tdBorderLT}">${treeIdMap?.[v.level4]?.Name || $t1('自闭环待办')}</td>
+          <td bgcolor="${thBgcolor}" style="${fontSize};${thBorderT}">${treeIdMap?.[v.level3]?.Name || $t1('qi_ta_su_qiu')}</td>
+          <td bgcolor="${thBgcolor}" style="${fontSize};${tdBorderLT}">${treeIdMap?.[v.level4]?.Name || $t1('zi_bi_huan_dai_ban')}</td>
           <td style="${fontSize};${tdBorderLT}">${v?.toDoManager || ''}</td>
           <td style="${fontSize};${tdBorderLT}">${priorityMap[v?.priority] || ''}</td>
           <td style="${fontSize};${tdBorderLT}">${v?.toDoDescription || 'toDoDescriptiontoDoDescriptiontoDoDescriptiontoDoDescriptiontoDoDescription'}</td>
@@ -185,21 +185,12 @@ const renderTodoList = (list = [], treeIdMap) => {
   return '<table cellspacing="0" cellpadding="5" style="width: 100%; border: 0.5px solid #D4D5D7">\n        <thead>\n          <tr style="text-align: left">\n            <th bgcolor="' +
 
 
-  thBgcolor + '" style="' + fontSize + ';' + thWidth + $t1('">三级目录</th>
-            <th style="') +
-  fontSize + ';' + thBorderL + ';' + thWidth + '" bgcolor="' + thBgcolor + $t1('">四级目录</th>
-            <th style="') +
-  fontSize + ';' + thBorderL + ';' + thWidth + '" bgcolor="' + thBgcolor + $t1('">处理人</th>
-            <th style="') +
-  fontSize + ';' + thBorderL + ';' + thWidth + '" bgcolor="' + thBgcolor + $t1('">优先级</th>
-            <th style="') +
-  fontSize + ';' + thBorderL + ';' + thWidth + '" bgcolor="' + thBgcolor + $t1('">待办描述</th>
-            <th style="') +
-  fontSize + ';' + thBorderL + ';' + thWidth + '" bgcolor="' + thBgcolor + $t1('">计划完成时间</th>
-          </tr>
-        </thead>
-        <tbody>
-          ') +
+  thBgcolor + '" style="' + fontSize + ';' + thWidth + $t1('san_ji_mu_lu') +
+  fontSize + ';' + thBorderL + ';' + thWidth + '" bgcolor="' + thBgcolor + $t1('si_ji_mu_lu') +
+  fontSize + ';' + thBorderL + ';' + thWidth + '" bgcolor="' + thBgcolor + $t1('chu_li_ren') +
+  fontSize + ';' + thBorderL + ';' + thWidth + '" bgcolor="' + thBgcolor + $t1('you_xian_ji') +
+  fontSize + ';' + thBorderL + ';' + thWidth + '" bgcolor="' + thBgcolor + $t1('dai_ban_miao_shu') +
+  fontSize + ';' + thBorderL + ';' + thWidth + '" bgcolor="' + thBgcolor + $t1('ji_hua_wan_cheng_shi_jian') +
 
 
 

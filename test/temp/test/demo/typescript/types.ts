@@ -11,8 +11,8 @@ interface User {
 
 // 但是值应该替换
 const defaultUser: User = {
-  name: $t1('默认用户'), // 应该替换
-  title: $t1('用户'), // 应该替换
+  name: $t1('mo_ren_yong_hu'), // 应该替换
+  title: $t1('yong_hu'), // 应该替换
   age: 25
 };
 
@@ -21,9 +21,9 @@ const messageValue = getValue() as '成功信息';
 
 // 枚举值
 enum Status {
-  LOADING = $t1('加载中'),
-  SUCCESS = $t1('成功'),
-  ERROR = $t1('失败'),
+  LOADING = $t1('jia_zai_zhong'),
+  SUCCESS = $t1('cheng_gong'),
+  ERROR = $t1('shi_bai_2umy9'),
 }
 
 // 泛型约束
@@ -49,8 +49,8 @@ interface Config {
 }
 
 const defaultConfig: Config = {
-  theme: $t1('默认主题'),
-  language: $t1('中文'),
+  theme: $t1('mo_ren_zhu_ti'),
+  language: $t1('zhong_wen'),
   timeout: 3000
 };
 
@@ -60,8 +60,8 @@ keyof T]: T[P] };
 
 
 const readonlyUser: ReadonlyType<User> = {
-  name: $t1('只读用户'),
-  title: $t1('用户'),
+  name: $t1('zhi_du_yong_hu'),
+  title: $t1('yong_hu'),
   age: 30
 };
 
@@ -72,14 +72,14 @@ type MessageResponse<T> = T extends {success: true;} ?
 
 // 类型守卫
 function isAdminUser(user: any): user is AdminUser {
-  return user && user.role === $t1('超级管理员');
+  return user && user.role === $t1('chao_ji_guan_li_yuan');
 }
 
 // 类型和值混合
 const userTypes = {
-  ADMIN: $t1('管理员'),
-  EDITOR: $t1('编辑者'),
-  VIEWER: $t1('查看者')
+  ADMIN: $t1('guan_li_yuan'),
+  EDITOR: $t1('bian_ji_zhe'),
+  VIEWER: $t1('cha_kan_zhe')
 } as const;
 
 type UserType = typeof userTypes[keyof typeof userTypes];
@@ -88,8 +88,8 @@ type UserType = typeof userTypes[keyof typeof userTypes];
 function formatMessage(type: '成功'): '操作已成功完成';
 function formatMessage(type: '错误', error?: string): string;
 function formatMessage(type: string, error?: string): string {
-  if (type === $t1('成功')) return $t1('操作已成功完成');
-  return $t1('错误：') + (error || $t1('未知错误'));
+  if (type === $t1('cheng_gong')) return $t1('cao_zuo_yi_cheng_gong_wan_cheng');
+  return $t1('cuo_wu_2osmsp') + (error || $t1('wei_zhi_cuo_wu'));
 }
 
 // 泛型函数
@@ -101,7 +101,7 @@ function identity<T>(value: T): T {
   return value;
 }
 
-const value = identity($t1('这是一个值'));
+const value = identity($t1('zhe_shi_yi_ge_zhi'));
 
 // 声明文件
 declare module 'i18n' {
@@ -120,7 +120,7 @@ namespace Validation {
     isValid(s: string): boolean {
       return s.length > 0;
     }
-    errorMessage = $t1('此字段为必填项');
+    errorMessage = $t1('ci_zi_duan_wei_bi_tian_xiang');
   }
 }
 
@@ -137,6 +137,6 @@ GreeterService {
     this.greeting = message;
   }
   greet() {
-    return $t1('你好, ') + this.greeting;
+    return $t1('ni_hao_yhyhtg') + this.greeting;
   }
 }

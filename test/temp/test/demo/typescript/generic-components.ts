@@ -31,31 +31,31 @@ class DataProcessor<T extends object> {
 
   constructor(initialData: T) {
     this.data = initialData;
-    this.processingStatus = $t1('等待处理');
+    this.processingStatus = $t1('deng_dai_chu_li');
   }
 
   process(callback: (data: T) => T): Promise<ApiResponse<T>> {
-    this.processingStatus = $t1('处理中');
+    this.processingStatus = $t1('chu_li_zhong');
 
     return new Promise((resolve, reject) => {
       try {
         setTimeout(() => {
           this.data = callback(this.data);
-          this.processingStatus = $t1('处理完成');
+          this.processingStatus = $t1('chu_li_wan_cheng');
 
           resolve({
             data: this.data,
             status: 200,
-            message: $t1('数据处理成功'),
+            message: $t1('shu_ju_chu_li_cheng_gong'),
             timestamp: Date.now()
           });
         }, 1000);
       } catch (error) {
-        this.processingStatus = $t1('处理失败');
+        this.processingStatus = $t1('chu_li_shi_bai');
         reject({
           data: null,
           status: 500,
-          message: $t1('处理过程中发生错误: ') + error.message,
+          message: $t1('chu_li_guo_cheng_zhong_fa_sheng_cuo_wu') + error.message,
           timestamp: Date.now()
         });
       }
@@ -63,7 +63,7 @@ class DataProcessor<T extends object> {
   }
 
   getStatus(): string {
-    return $t1('当前状态: ') + this.processingStatus;
+    return $t1('dang_qian_zhuang_tai_1lrjq2') + this.processingStatus;
   }
 }
 
@@ -79,15 +79,15 @@ errorHandler: (message: string) => void)
         return {
           data: result,
           status: 200,
-          message: $t1('转换成功'),
+          message: $t1('zhuan_huan_cheng_gong'),
           timestamp: Date.now()
         };
       } catch (error) {
-        errorHandler($t1('数据转换失败: ') + error.message);
+        errorHandler($t1('shu_ju_zhuan_huan_shi_bai') + error.message);
         return {
           data: null as unknown as R,
           status: 500,
-          message: $t1('数据转换过程中发生错误'),
+          message: $t1('shu_ju_zhuan_huan_guo_cheng_zhong_fa_sheng_cuo'),
           timestamp: Date.now()
         };
       }
@@ -101,12 +101,12 @@ async function processUserData() {
   const userData: UserData = {
     id: 1,
     username: 'user123',
-    displayName: $t1('测试用户'),
-    role: $t1('访客'),
+    displayName: $t1('ce_shi_yong_hu'),
+    role: $t1('fang_ke'),
     lastLogin: '2023-01-01',
     settings: {
-      theme: $t1('深色主题'),
-      language: $t1('中文'),
+      theme: $t1('shen_se_zhu_ti'),
+      language: $t1('zhong_wen'),
       notifications: true
     }
   };
@@ -120,20 +120,20 @@ async function processUserData() {
     const result = await userProcessor.process((user) => {
       return {
         ...user,
-        displayName: user.displayName + $t1(' (已验证)'),
+        displayName: user.displayName + $t1('yi_yan_zheng'),
         lastLogin: new Date().toISOString(),
         settings: {
           ...user.settings,
-          theme: $t1('系统默认')
+          theme: $t1('xi_tong_mo_ren')
         }
       };
     });
 
-    console.log($t1('处理结果: ') + result.message);
-    console.log($t1('用户名: ') + result.data.displayName);
-    console.log($t1('主题设置: ') + result.data.settings.theme);
+    console.log($t1('chu_li_jie_guo_1m8y85') + result.message);
+    console.log($t1('yong_hu_ming_1z9i8d') + result.data.displayName);
+    console.log($t1('zhu_ti_she_zhi_1nr3of') + result.data.settings.theme);
   } catch (error) {
-    console.error($t1('错误: ') + error.message);
+    console.error($t1('cuo_wu_yi4ow9') + error.message);
   }
 
   // 使用泛型工厂函数
@@ -150,17 +150,17 @@ async function processUserData() {
       return {
         loginCount: 42,
         lastActive: new Date().toISOString(),
-        status: $t1('活跃'),
-        securityLevel: $t1('中')
+        status: $t1('huo_yue'),
+        securityLevel: $t1('zhong')
       };
     },
-    (errorMsg) => console.error($t1('统计服务错误: ') + errorMsg)
+    (errorMsg) => console.error($t1('tong_ji_fu_wu_cuo_wu') + errorMsg)
   );
 
   const statsResult = await userStatsService.transform(userData);
-  console.log($t1('用户状态: ') + statsResult.data.status);
-  console.log($t1('安全级别: ') + statsResult.data.securityLevel);
-  console.log($t1('登录次数: ') + statsResult.data.loginCount);
+  console.log($t1('yong_hu_zhuang_tai') + statsResult.data.status);
+  console.log($t1('an_quan_ji_bie') + statsResult.data.securityLevel);
+  console.log($t1('deng_lu_ci_shu') + statsResult.data.loginCount);
 }
 
 // 递归泛型类型
@@ -176,52 +176,52 @@ type NestedObject<T> = {
 
 // 创建一个嵌套对象
 const menuStructure: NestedObject<string> = {
-  value: $t1('主菜单'),
+  value: $t1('zhu_cai_dan'),
   metadata: {
-    label: $t1('系统导航'),
-    description: $t1('主导航菜单'),
+    label: $t1('xi_tong_dao_hang'),
+    description: $t1('zhu_dao_hang_cai_dan'),
     isExpanded: true
   },
   children: [
   {
-    value: $t1('用户管理'),
+    value: $t1('yong_hu_guan_li'),
     metadata: {
-      label: $t1('用户'),
-      description: $t1('用户管理模块'),
+      label: $t1('yong_hu'),
+      description: $t1('yong_hu_guan_li_mo_kuai'),
       isExpanded: false
     },
     children: [
     {
-      value: $t1('添加用户'),
+      value: $t1('tian_jia_yong_hu'),
       metadata: {
-        label: $t1('新增'),
-        description: $t1('添加新用户到系统'),
+        label: $t1('xin_zeng'),
+        description: $t1('tian_jia_xin_yong_hu_dao_xi_tong'),
         isExpanded: false
       }
     },
     {
-      value: $t1('用户列表'),
+      value: $t1('yong_hu_lie_biao'),
       metadata: {
-        label: $t1('列表'),
-        description: $t1('查看所有系统用户'),
+        label: $t1('lie_biao'),
+        description: $t1('cha_kan_suo_you_xi_tong_yong_hu'),
         isExpanded: false
       }
     }]
 
   },
   {
-    value: $t1('设置'),
+    value: $t1('she_zhi'),
     metadata: {
-      label: $t1('配置'),
-      description: $t1('系统配置选项'),
+      label: $t1('pei_zhi'),
+      description: $t1('xi_tong_pei_zhi_xuan_xiang'),
       isExpanded: false
     },
     children: [
     {
-      value: $t1('个人设置'),
+      value: $t1('ge_ren_she_zhi'),
       metadata: {
-        label: $t1('个人'),
-        description: $t1('个人账户设置'),
+        label: $t1('ge_ren'),
+        description: $t1('ge_ren_zhang_hu_she_zhi'),
         isExpanded: false
       }
     }]
@@ -252,48 +252,48 @@ config: AlertConfig<T>)
   };
 
   switch (type) {
-    case $t1('错误'):
-      console.error($t1('严重错误: ') + message, { ...baseConfig, ...config });
+    case $t1('cuo_wu'):
+      console.error($t1('yan_zhong_cuo_wu') + message, { ...baseConfig, ...config });
       break;
-    case $t1('警告'):
-      console.warn($t1('警告信息: ') + message, { ...baseConfig, ...config });
+    case $t1('jing_gao'):
+      console.warn($t1('jing_gao_xin_xi_1kusf3') + message, { ...baseConfig, ...config });
       break;
-    case $t1('信息'):
-      console.info($t1('提示信息: ') + message, { ...baseConfig, ...config });
+    case $t1('xin_xi'):
+      console.info($t1('ti_shi_xin_xi_1kuyj1') + message, { ...baseConfig, ...config });
       break;
-    case $t1('成功'):
-      console.log($t1('操作成功: ') + message, { ...baseConfig, ...config });
+    case $t1('cheng_gong'):
+      console.log($t1('cao_zuo_cheng_gong_1sbrcy') + message, { ...baseConfig, ...config });
       break;
   }
 }
 
 // 使用示例
 function demonstrateAlerts() {
-  showAlert($t1('错误'), $t1('服务器连接失败'), {
+  showAlert($t1('cuo_wu'), $t1('fu_wu_qi_lian_jie_shi_bai'), {
     level: 'high',
     autoClose: false,
     requireAction: true,
-    title: $t1('连接错误')
+    title: $t1('lian_jie_cuo_wu')
   });
 
-  showAlert($t1('警告'), $t1('表单有未保存的更改'), {
+  showAlert($t1('jing_gao'), $t1('biao_dan_you_wei_bao_cun_de_geng_gai'), {
     level: 'medium',
     autoClose: true,
     timeout: 5000,
-    title: $t1('未保存警告')
+    title: $t1('wei_bao_cun_jing_gao')
   });
 
-  showAlert($t1('信息'), $t1('新消息已到达'), {
+  showAlert($t1('xin_xi'), $t1('xin_xiao_xi_yi_dao_da'), {
     level: 'low',
     autoClose: true,
     timeout: 3000,
-    title: $t1('消息通知')
+    title: $t1('xiao_xi_tong_zhi')
   });
 
-  showAlert($t1('成功'), $t1('数据保存成功'), {
+  showAlert($t1('cheng_gong'), $t1('shu_ju_bao_cun_cheng_gong'), {
     level: 'low',
     autoClose: true,
     timeout: 2000,
-    title: $t1('保存成功')
+    title: $t1('bao_cun_cheng_gong_15wcvl')
   });
 }

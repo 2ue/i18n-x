@@ -4,13 +4,13 @@ const { $t1 } = useTranslation();
 // 嵌套场景测试用例
 // 闭包和作用域
 function createMessageHandler() {
-  const prefix = $t1('系统消息：');
+  const prefix = $t1('xi_tong_xiao_xi');
 
   return function (type) {
     const messages = {
-      success: $t1('操作成功'),
-      error: $t1('操作失败'),
-      warning: $t1('警告信息')
+      success: $t1('cao_zuo_cheng_gong'),
+      error: $t1('cao_zuo_shi_bai'),
+      warning: $t1('jing_gao_xin_xi')
     };
 
     return prefix + messages[type];
@@ -22,15 +22,15 @@ const successMessage = messageHandler('success');
 
 // 异步场景
 // Promise
-const fetchData = () => Promise.resolve($t1('数据加载成功'));
+const fetchData = () => Promise.resolve($t1('shu_ju_jia_zai_cheng_gong'));
 
 // async/await
 async function loadUser() {
   try {
-    const user = await { name: $t1('张三') }; // 模拟API调用
-    return user || $t1('用户不存在');
+    const user = await { name: $t1('zhang_san') }; // 模拟API调用
+    return user || $t1('yong_hu_bu_cun_zai');
   } catch (error) {
-    throw new Error($t1('加载用户失败'));
+    throw new Error($t1('jia_zai_yong_hu_shi_bai'));
   }
 }
 
@@ -42,62 +42,62 @@ function log(message) {
 }
 
 class UserService {
-  static defaultMessage = $t1('默认服务消息');
+  static defaultMessage = $t1('mo_ren_fu_wu_xiao_xi');
 
-  errorMessage = $t1('服务错误');
+  errorMessage = $t1('fu_wu_cuo_wu');
 
-  @log($t1('用户服务'))
+  @log($t1('yong_hu_fu_wu'))
   async getUser(id) {
     if (!id) {
-      throw new Error($t1('用户ID不能为空'));
+      throw new Error($t1('yong_hu_bu_neng_wei_kong'));
     }
-    return { name: $t1('张三'), id };
+    return { name: $t1('zhang_san'), id };
   }
 }
 
 // 高阶函数
 function withLogging(fn) {
   return function (...args) {
-    console.log($t1('调用函数:'), fn.name);
+    console.log($t1('diao_yong_han_shu'), fn.name);
     return fn(...args);
   };
 }
 
 const loggedFunction = withLogging(function doSomething() {
-  return $t1('执行了某些操作');
+  return $t1('zhi_xing_le_mou_xie_cao_zuo');
 });
 
 // 递归函数
-function factorial(n, message = $t1('计算阶乘')) {
+function factorial(n, message = $t1('ji_suan_jie_cheng')) {
   console.log(`${message}: ${n}`);
   if (n <= 1) return 1;
-  return n * factorial(n - 1, $t1('递归调用'));
+  return n * factorial(n - 1, $t1('di_gui_diao_yong'));
 }
 
 // 嵌套对象和函数
 const complexObject = {
-  name: $t1('复杂对象'),
+  name: $t1('fu_za_dui_xiang'),
   data: {
     items: [
     {
       id: 1,
-      name: $t1('嵌套项目'),
+      name: $t1('qian_tao_xiang_mu'),
       getDetails() {
-        return $t1('项目详情：') + this.name;
+        return $t1('xiang_mu_xiang_qing') + this.name;
       }
     }],
 
     getItem(id) {
       const item = this.items.find((i) => i.id === id);
-      return item || { name: $t1('未找到项目') };
+      return item || { name: $t1('wei_zhao_dao_xiang_mu') };
     }
   },
   utils: {
     format(text) {
-      return $t1('格式化：') + text;
+      return $t1('ge_shi_hua') + text;
     },
     validate(value) {
-      return value ? $t1('验证通过') : $t1('验证失败');
+      return value ? $t1('yan_zheng_tong_guo') : $t1('yan_zheng_shi_bai');
     }
   }
 };
@@ -108,18 +108,18 @@ function processItems(items) {
 
   for (const item of items) {
     if (item.active) {
-      let status = $t1('活跃');
+      let status = $t1('huo_yue');
 
       if (item.type === 'user') {
-        status += item.admin ? $t1(' (管理员)') : $t1(' (普通用户)');
+        status += item.admin ? $t1('guan_li_yuan_mado6z') : $t1('pu_tong_yong_hu_1hyok3');
       } else if (item.type === 'system') {
-        status += $t1(' (系统)');
+        status += $t1('xi_tong');
       }
 
       results.push({
         id: item.id,
         status,
-        message: $t1('处理') + item.name + $t1('成功')
+        message: $t1('chu_li') + item.name + $t1('cheng_gong')
       });
     }
   }

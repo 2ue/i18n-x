@@ -3,75 +3,71 @@ const { $t1 } = useTranslation();
 
 // 复杂 JavaScript 测试文件 - 覆盖各种中文字符串场景
 // 1. 基础字符串场景
-const simpleString = $t1('简单中文字符串');
-const mixedString = $t1('中文abc123英文');
+const simpleString = $t1('jian_dan_zhong_wen_zi_fu_chuan');
+const mixedString = $t1('zhong_wen_ying_wen');
 const emptyString = '';
 const englishOnly = 'english only';
 
 // 2. 模板字符串场景
 const userName = 'John';
 const age = 25;
-const templateBasic = $t1('欢迎用户') + userName;
-const templateComplex = $t1('用户') + userName + $t1('年龄') + age + $t1('岁');
-const templateMultiline = $t1('
-  多行模板字符串
-  第二行内容：') +
+const templateBasic = $t1('huan_ying_yong_hu') + userName;
+const templateComplex = $t1('yong_hu') + userName + $t1('nian_ling') + age + $t1('sui');
+const templateMultiline = $t1('duo_hang_mu_ban_zi_fu_chuan_di_er_hang') +
 
-userName + $t1('
-  第三行：结束
-');
+userName + $t1('di_san_hang_jie_shu');
 
 
 
 // 3. 三元表达式场景
 const isVip = true;
-const userType = isVip ? $t1('尊贵会员') : $t1('普通用户');
-const statusMessage = age > 18 ? $t1('成年人') : $t1('未成年人');
-const nestedTernary = isVip ? age > 30 ? $t1('资深会员') : $t1('新会员') : $t1('访客');
+const userType = isVip ? $t1('zun_gui_hui_yuan') : $t1('pu_tong_yong_hu');
+const statusMessage = age > 18 ? $t1('cheng_nian_ren') : $t1('wei_cheng_nian_ren');
+const nestedTernary = isVip ? age > 30 ? $t1('zi_shen_hui_yuan') : $t1('xin_hui_yuan') : $t1('fang_ke');
 
 // 4. 条件判断场景
-if (userType === $t1('尊贵会员')) {
-  console.log($t1('欢迎VIP用户'));
+if (userType === $t1('zun_gui_hui_yuan')) {
+  console.log($t1('huan_ying_yong_hu_15vn5d'));
 }
 
 switch (userType) {
-  case $t1('尊贵会员'):
-    console.log($t1('VIP服务'));
+  case $t1('zun_gui_hui_yuan'):
+    console.log($t1('fu_wu'));
     break;
-  case $t1('普通用户'):
-    console.log($t1('标准服务'));
+  case $t1('pu_tong_yong_hu'):
+    console.log($t1('biao_zhun_fu_wu'));
     break;
   default:
-    console.log($t1('默认服务'));
+    console.log($t1('mo_ren_fu_wu'));
 }
 
 // 5. 函数参数和默认值
-function greet(name = $t1('默认用户'), message = $t1('你好')) {
+function greet(name = $t1('mo_ren_yong_hu'), message = $t1('ni_hao')) {
   return `${message}，${name}！`;
 }
 
-const sayHello = (greeting = $t1('欢迎')) => greeting + $t1('访问我们的网站');
+const sayHello = (greeting = $t1('huan_ying')) => greeting + $t1('fang_wen_wo_men_de_wang_zhan');
 
 function showAlert(msg) {
-  alert($t1('提示：') + msg);
+  alert($t1('ti_shi') + msg);
 }
 
 // 调用函数传参
-greet($t1('张三'), $t1('早上好'));
-showAlert($t1('操作成功'));
+greet($t1('zhang_san'), $t1('zao_shang_hao'));
+showAlert($t1('cao_zuo_cheng_gong'));
 
 // 6. 对象和数组场景
 const userInfo = {
-  name: $t1('用户姓名'),
-  role: $t1('管理员'),
-  permissions: [$t1('查看'), $t1('编辑'), $t1('删除')],
+  name: $t1('yong_hu_xing_ming'),
+  role: $t1('guan_li_yuan'),
+  permissions: [$t1('cha_kan'), $t1('bian_ji'), $t1('shan_chu')],
   settings: {
-    language: $t1('中文'),
-    theme: $t1('深色主题')
+    language: $t1('zhong_wen'),
+    theme: $t1('shen_se_zhu_ti')
   }
 };
 
-const menuItems = [$t1('首页'), $t1('产品中心'), $t1('关于我们'), $t1('联系方式')];
+const menuItems = [$t1('shou_ye'), $t1('chan_pin_zhong_xin'), $t1('guan_yu_wo_men'), $t1('lian_xi_fang_shi')];
 
 
 
@@ -79,84 +75,83 @@ const menuItems = [$t1('首页'), $t1('产品中心'), $t1('关于我们'), $t1(
 
 
 const complexArray = [
-{ id: 1, title: $t1('文章标题'), content: $t1('内容摘要') + Math.random() },
-{ id: 2, title: $t1('新闻标题'), content: $t1('新闻内容详情') }];
+{ id: 1, title: $t1('wen_zhang_biao_ti'), content: $t1('nei_rong_zhai_yao') + Math.random() },
+{ id: 2, title: $t1('xin_wen_biao_ti'), content: $t1('xin_wen_nei_rong_xiang_qing') }];
 
 
 // 7. 复杂表达式和计算
-const dynamicMessage = $t1('当前时间：') + new Date().toLocaleString('zh-CN');
-const concatenated = $t1('前缀') + userInfo.name + $t1('后缀');
-const calculated = $t1('总计：') + (10 + 20) + $t1('元');
+const dynamicMessage = $t1('dang_qian_shi_jian') + new Date().toLocaleString('zh-CN');
+const concatenated = $t1('qian_zhui') + userInfo.name + $t1('hou_zhui');
+const calculated = $t1('zong_ji') + (10 + 20) + $t1('yuan');
 
 // 8. 异步函数和 Promise
 async function fetchUserData() {
   try {
     const response = await fetch('/api/user');
-    return { success: true, message: $t1('数据加载成功') };
+    return { success: true, message: $t1('shu_ju_jia_zai_cheng_gong') };
   } catch (error) {
-    return { success: false, message: $t1('数据加载失败') };
+    return { success: false, message: $t1('shu_ju_jia_zai_shi_bai') };
   }
 }
 
 const promise = new Promise((resolve, reject) => {
   setTimeout(() => {
-    resolve($t1('异步操作完成'));
+    resolve($t1('yi_bu_cao_zuo_wan_cheng'));
   }, 1000);
 });
 
 // 9. 正则表达式和字符串操作
 const phoneRegex = /^1[3-9]\d{9}$/;
-const errorMsg = phoneRegex.test('13812345678') ? $t1('手机号格式正确') : $t1('手机号格式错误');
+const errorMsg = phoneRegex.test('13812345678') ? $t1('shou_ji_hao_ge_shi_zheng_que') : $t1('shou_ji_hao_ge_shi_cuo_wu');
 
 const processText = (text) => {
-  return text.includes($t1('敏感词')) ? $t1('内容包含敏感词') : $t1('内容检查通过');
+  return text.includes($t1('min_gan_ci')) ? $t1('nei_rong_bao_han_min_gan_ci') : $t1('nei_rong_jian_cha_tong_guo');
 };
 
 // 10. 类和方法
 class UserManager {
-  constructor(name = $t1('系统管理员')) {
+  constructor(name = $t1('xi_tong_guan_li_yuan')) {
     this.name = name;
-    this.status = $t1('在线');
+    this.status = $t1('zai_xian');
   }
 
   login() {
-    return $t1('用户') + this.name + $t1('登录成功');
+    return $t1('yong_hu') + this.name + $t1('deng_lu_cheng_gong');
   }
 
   logout() {
-    return $t1('用户已退出登录');
+    return $t1('yong_hu_yi_tui_chu_deng_lu');
   }
 
   showStatus() {
-    return this.status === $t1('在线') ? $t1('当前在线') : $t1('当前离线');
+    return this.status === $t1('zai_xian') ? $t1('dang_qian_zai_xian') : $t1('dang_qian_li_xian');
   }
 }
 
 // 11. 模块导出
 const messages = {
-  welcome: $t1('欢迎使用系统'),
-  goodbye: $t1('感谢使用，再见'),
-  error: $t1('系统发生错误'),
-  loading: $t1('正在加载中...')
+  welcome: $t1('huan_ying_shi_yong_xi_tong'),
+  goodbye: $t1('gan_xie_shi_yong_zai_jian'),
+  error: $t1('xi_tong_fa_sheng_cuo_wu'),
+  loading: $t1('zheng_zai_jia_zai_zhong')
 };
 
 // 12. 复杂嵌套和字符串拼接
 const buildComplexMessage = (user, action) => {
   const time = new Date().toLocaleString('zh-CN');
-  const prefix = action === 'login' ? $t1('登录') : $t1('操作');
-  return time + $t1(' - 用户"') + user + $t1('"执行了') + prefix + $t1('操作');
+  const prefix = action === 'login' ? $t1('deng_lu') : $t1('cao_zuo');
+  return time + $t1('yong_hu_438chh') + user + $t1('zhi_xing_le') + prefix + $t1('cao_zuo');
 };
 
 // 13. 转义字符和特殊字符
-const quotedString = $t1('这里有"双引号"和'单引号'');
-const escapedString = $t1('包含换行符
-和制表符	的字符串');
-const pathString = $t1('文件路径：C:\用户\文档\test.txt');
+const quotedString = $t1('zhe_li_you_shuang_yin_hao_he_dan_yin_hao');
+const escapedString = $t1('bao_han_huan_hang_fu_he_zhi_biao_fu_de');
+const pathString = $t1('wen_jian_lu_jing_yong_hu_wen_dang');
 
 // 14. 数值和字符串混合
-const priceMessage = $t1('商品价格：￥') + 99.99 + $t1('元');
-const countMessage = $t1('共有') + 100 + $t1('个商品');
-const percentMessage = $t1('完成度：') + 80;
+const priceMessage = $t1('shang_pin_jia_ge') + 99.99 + $t1('yuan');
+const countMessage = $t1('gong_you') + 100 + $t1('ge_shang_pin');
+const percentMessage = $t1('wan_cheng_du') + 80;
 
 module.exports = {
   messages,

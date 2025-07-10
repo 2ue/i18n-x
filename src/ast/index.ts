@@ -126,6 +126,35 @@ function createI18nCallExpression(
 }
 
 /**
+ * 检查节点是否已经是国际化函数调用格式（如$t(key)）
+ */
+function isI18nFunctionCall(path: any, functionName: string): boolean {
+  const node = path.node;
+
+  // 检查是否是函数调用
+  if (!t.isCallExpression(node)) {
+    return false;
+  }
+
+  // 检查函数名是否匹配
+  if (!t.isIdentifier(node.callee) || node.callee.name !== functionName) {
+    return false;
+  }
+
+  // 检查参数数量
+  if (node.arguments.length !== 1) {
+    return false;
+  }
+
+  // 检查参数是否为字符串字面量
+  if (!t.isStringLiteral(node.arguments[0])) {
+    return false;
+  }
+
+  return true;
+}
+
+/**
  * 处理字符串字面量
  */
 function handleStringLiteral(
@@ -135,6 +164,13 @@ function handleStringLiteral(
 ): boolean {
   // 跳过类型定义位置的字符串字面量
   if (isInTypePosition(path)) {
+    return false;
+  }
+
+  // 检查父节点是否已经是国际化函数调用
+  const parentPath = path.parentPath;
+  if (parentPath && isI18nFunctionCall(parentPath, functionName)) {
+    Logger.verbose(`跳过已经国际化的函数调用: ${functionName}(${path.node.value})`);
     return false;
   }
 
@@ -243,6 +279,13 @@ export async function scanAndReplaceAll(): Promise<void> {
           return;
         }
 
+        // 检查父节点是否已经是国际化函数调用的一部分
+        const parentPath = path.parentPath;
+        if (parentPath?.parentPath && isI18nFunctionCall(parentPath.parentPath, functionName)) {
+          Logger.verbose(`跳过已经国际化的模板字符串元素`);
+          return;
+        }
+
         const raw = path.node.value?.raw;
         if (raw && typeof raw === 'string' && containsChinese(raw)) {
           // 替换所有中文片段为${$t('key')}，保留非中文和插值
@@ -277,6 +320,13 @@ export async function scanAndReplaceAll(): Promise<void> {
 
       // 处理模板字符串
       TemplateLiteral(path: any) {
+        // 检查父节点是否已经是国际化函数调用
+        const parentPath = path.parentPath;
+        if (parentPath && isI18nFunctionCall(parentPath, functionName)) {
+          Logger.verbose(`跳过已经国际化的模板字符串`);
+          return;
+        }
+
         // 特殊处理像 `计数器：${count}次` 这样的模板字符串
         if (
           path.node.expressions &&
@@ -588,6 +638,17 @@ export async function scanAndReplaceAll(): Promise<void> {
       JSXText(path: any) {
         const textValue = path.node.value;
         if (textValue && typeof textValue === 'string' && containsChinese(textValue)) {
+          // 检查父节点是否已经是JSX表达式容器中的国际化函数调用
+          const parentPath = path.parentPath;
+          if (
+            parentPath?.isJSXExpressionContainer() &&
+            parentPath.node.expression &&
+            isI18nFunctionCall({ node: parentPath.node.expression }, functionName)
+          ) {
+            Logger.verbose(`跳过已经国际化的JSX文本: ${functionName}(${textValue.trim()})`);
+            return;
+          }
+
           const trimmedValue = textValue.trim();
           if (trimmedValue) {
             // 确保trim后不是空字符串
@@ -614,6 +675,16 @@ export async function scanAndReplaceAll(): Promise<void> {
           typeof path.node.value.value === 'string' &&
           containsChinese(path.node.value.value)
         ) {
+          // 检查属性值是否已经是JSX表达式容器中的国际化函数调用
+          if (
+            t.isJSXExpressionContainer(path.node.value) &&
+            path.node.value.expression &&
+            isI18nFunctionCall({ node: path.node.value.expression }, functionName)
+          ) {
+            Logger.verbose(`跳过已经国际化的JSX属性: ${functionName}(${path.node.value.value})`);
+            return;
+          }
+
           const attributeValue = path.node.value.value;
           const key = createI18nKey(attributeValue);
 
@@ -632,6 +703,13 @@ export async function scanAndReplaceAll(): Promise<void> {
       // 处理JSX表达式容器中的字符串字面量
       JSXExpressionContainer(path: any) {
         const expression = path.node.expression;
+
+        // 检查是否已经是国际化函数调用
+        if (isI18nFunctionCall({ node: expression }, functionName)) {
+          Logger.verbose(`跳过已经国际化的JSX表达式: ${functionName}(...)`);
+          return;
+        }
+
         if (t.isStringLiteral(expression) && containsChinese(expression.value)) {
           const stringValue = expression.value;
           const key = createI18nKey(stringValue);
@@ -679,25 +757,44 @@ export async function scanAndReplaceAll(): Promise<void> {
 
       // 处理三元表达式中的字符串
       ConditionalExpression(path: any) {
+        // 检查是否已经是国际化函数调用
+        if (isI18nFunctionCall(path, functionName)) {
+          Logger.verbose(`跳过已经国际化的三元表达式`);
+          return;
+        }
+
         // 处理三元表达式的测试部分
         if (t.isStringLiteral(path.node.test) && containsChinese(path.node.test.value)) {
-          const stringValue = path.node.test.value;
-          const key = createI18nKey(stringValue);
+          // 检查测试部分是否已经是国际化函数调用
+          if (isI18nFunctionCall({ node: path.node.test }, functionName)) {
+            Logger.verbose(`跳过已经国际化的三元表达式测试部分`);
+          } else {
+            const stringValue = path.node.test.value;
+            const key = createI18nKey(stringValue);
 
-          // 替换三元表达式测试部分的字符串
-          const callExpression = createI18nCallExpression(functionName, key, quoteType);
-          path.node.test = callExpression;
+            // 替换三元表达式测试部分的字符串
+            const callExpression = createI18nCallExpression(functionName, key, quoteType);
+            path.node.test = callExpression;
 
-          hasReplacement = true;
-          fileReplacements++;
-          Logger.verbose(
-            `替换三元表达式测试部分的字符串: "${stringValue}" -> ${functionName}(${quoteType === 'single' ? "'" : '"'}${key}${quoteType === 'single' ? "'" : '"'})`
-          );
+            hasReplacement = true;
+            fileReplacements++;
+            Logger.verbose(
+              `替换三元表达式测试部分的字符串: "${stringValue}" -> ${functionName}(${quoteType === 'single' ? "'" : '"'}${key}${quoteType === 'single' ? "'" : '"'})`
+            );
+          }
         }
 
         // 处理三元表达式的结果部分
         ['consequent', 'alternate'].forEach((key) => {
           const node = path.node[key];
+
+          // 检查结果部分是否已经是国际化函数调用
+          if (isI18nFunctionCall({ node }, functionName)) {
+            Logger.verbose(
+              `跳过已经国际化的三元表达式${key === 'consequent' ? '结果' : '备选'}部分`
+            );
+            return;
+          }
 
           // 处理直接的字符串字面量
           if (t.isStringLiteral(node) && containsChinese(node.value)) {
@@ -777,6 +874,12 @@ export async function scanAndReplaceAll(): Promise<void> {
       ObjectProperty(path: any) {
         const valueNode = path.node.value;
 
+        // 检查值是否已经是国际化函数调用
+        if (isI18nFunctionCall({ node: valueNode }, functionName)) {
+          Logger.verbose(`跳过已经国际化的对象属性值`);
+          return;
+        }
+
         // 只处理值部分，键名不处理
         if (
           t.isStringLiteral(valueNode) &&
@@ -854,6 +957,12 @@ export async function scanAndReplaceAll(): Promise<void> {
 
       // 处理函数调用参数中的对象表达式
       CallExpression(path: any) {
+        // 如果当前节点已经是国际化函数调用，直接跳过
+        if (isI18nFunctionCall(path, functionName)) {
+          Logger.verbose(`跳过已经国际化的函数调用: ${functionName}(...)`);
+          return;
+        }
+
         // 处理 useState 调用的初始值
         if (t.isIdentifier(path.node.callee) && path.node.callee.name === 'useState') {
           // useState 调用通常只有一个参数，即初始值
@@ -1058,6 +1167,13 @@ export async function scanAndReplaceAll(): Promise<void> {
       // 处理变量声明
       VariableDeclarator(path: any) {
         const init = path.node.init;
+
+        // 检查初始值是否已经是国际化函数调用
+        if (init && isI18nFunctionCall({ node: init }, functionName)) {
+          Logger.verbose(`跳过已经国际化的变量初始值`);
+          return;
+        }
+
         if (t.isStringLiteral(init) && containsChinese(init.value)) {
           const stringValue = init.value;
           const key = createI18nKey(stringValue);
@@ -1102,6 +1218,12 @@ export async function scanAndReplaceAll(): Promise<void> {
       // 处理数组表达式中的字符串元素
       ArrayExpression(path: any) {
         path.node.elements.forEach((element: any, index: number) => {
+          // 检查元素是否已经是国际化函数调用
+          if (element && isI18nFunctionCall({ node: element }, functionName)) {
+            Logger.verbose(`跳过已经国际化的数组元素`);
+            return;
+          }
+
           if (t.isStringLiteral(element) && containsChinese(element.value)) {
             const stringValue = element.value;
             const key = createI18nKey(stringValue);
@@ -1116,7 +1238,6 @@ export async function scanAndReplaceAll(): Promise<void> {
               `替换数组元素: "${stringValue}" -> ${functionName}(${quoteType === 'single' ? "'" : '"'}${key}${quoteType === 'single' ? "'" : '"'})`
             );
           }
-
           // 处理数组中的对象元素
           if (t.isObjectExpression(element)) {
             element.properties.forEach((prop: any) => {
@@ -1168,6 +1289,12 @@ export async function scanAndReplaceAll(): Promise<void> {
 
       // 处理成员表达式赋值
       AssignmentExpression(path: any) {
+        // 检查右侧是否已经是国际化函数调用
+        if (isI18nFunctionCall({ node: path.node.right }, functionName)) {
+          Logger.verbose(`跳过已经国际化的赋值表达式右侧`);
+          return;
+        }
+
         // 处理形如 obj.prop = '中文' 的情况
         if (
           t.isMemberExpression(path.node.left) &&
@@ -1216,18 +1343,23 @@ export async function scanAndReplaceAll(): Promise<void> {
       SwitchCase(path: any) {
         // 处理 case '中文': 这种情况
         if (t.isStringLiteral(path.node.test) && containsChinese(path.node.test.value)) {
-          const stringValue = path.node.test.value;
-          const key = createI18nKey(stringValue);
+          // 检查 case 表达式是否已经是国际化函数调用
+          if (isI18nFunctionCall({ node: path.node.test }, functionName)) {
+            Logger.verbose(`跳过已经国际化的 switch/case 表达式`);
+          } else {
+            const stringValue = path.node.test.value;
+            const key = createI18nKey(stringValue);
 
-          // 替换 case 表达式中的字符串
-          const callExpression = createI18nCallExpression(functionName, key, quoteType);
-          path.node.test = callExpression;
+            // 替换 case 表达式中的字符串
+            const callExpression = createI18nCallExpression(functionName, key, quoteType);
+            path.node.test = callExpression;
 
-          hasReplacement = true;
-          fileReplacements++;
-          Logger.verbose(
-            `替换 switch/case 中的字符串: "${stringValue}" -> ${functionName}(${quoteType === 'single' ? "'" : '"'}${key}${quoteType === 'single' ? "'" : '"'})`
-          );
+            hasReplacement = true;
+            fileReplacements++;
+            Logger.verbose(
+              `替换 switch/case 中的字符串: "${stringValue}" -> ${functionName}(${quoteType === 'single' ? "'" : '"'}${key}${quoteType === 'single' ? "'" : '"'})`
+            );
+          }
         }
 
         // 处理 case 语句块中的字符串字面量
@@ -1237,18 +1369,26 @@ export async function scanAndReplaceAll(): Promise<void> {
             t.isStringLiteral(statement.argument) &&
             containsChinese(statement.argument.value)
           ) {
-            const stringValue = statement.argument.value;
-            const key = createI18nKey(stringValue);
+            // 检查返回语句是否已经是国际化函数调用
+            if (
+              statement.argument &&
+              isI18nFunctionCall({ node: statement.argument }, functionName)
+            ) {
+              Logger.verbose(`跳过已经国际化的 case 语句块中的返回语句`);
+            } else {
+              const stringValue = statement.argument.value;
+              const key = createI18nKey(stringValue);
 
-            // 替换 return 语句中的字符串
-            const callExpression = createI18nCallExpression(functionName, key, quoteType);
-            statement.argument = callExpression;
+              // 替换 return 语句中的字符串
+              const callExpression = createI18nCallExpression(functionName, key, quoteType);
+              statement.argument = callExpression;
 
-            hasReplacement = true;
-            fileReplacements++;
-            Logger.verbose(
-              `替换 case 语句块中 return 语句的字符串: "${stringValue}" -> ${functionName}(${quoteType === 'single' ? "'" : '"'}${key}${quoteType === 'single' ? "'" : '"'})`
-            );
+              hasReplacement = true;
+              fileReplacements++;
+              Logger.verbose(
+                `替换 case 语句块中 return 语句的字符串: "${stringValue}" -> ${functionName}(${quoteType === 'single' ? "'" : '"'}${key}${quoteType === 'single' ? "'" : '"'})`
+              );
+            }
           }
 
           // 处理 case 语句块中的表达式语句
@@ -1257,18 +1397,23 @@ export async function scanAndReplaceAll(): Promise<void> {
             t.isStringLiteral(statement.expression) &&
             containsChinese(statement.expression.value)
           ) {
-            const stringValue = statement.expression.value;
-            const key = createI18nKey(stringValue);
+            // 检查表达式语句是否已经是国际化函数调用
+            if (isI18nFunctionCall({ node: statement.expression }, functionName)) {
+              Logger.verbose(`跳过已经国际化的 case 语句块中的表达式语句`);
+            } else {
+              const stringValue = statement.expression.value;
+              const key = createI18nKey(stringValue);
 
-            // 替换表达式语句中的字符串
-            const callExpression = createI18nCallExpression(functionName, key, quoteType);
-            statement.expression = callExpression;
+              // 替换表达式语句中的字符串
+              const callExpression = createI18nCallExpression(functionName, key, quoteType);
+              statement.expression = callExpression;
 
-            hasReplacement = true;
-            fileReplacements++;
-            Logger.verbose(
-              `替换 case 语句块中表达式语句的字符串: "${stringValue}" -> ${functionName}(${quoteType === 'single' ? "'" : '"'}${key}${quoteType === 'single' ? "'" : '"'})`
-            );
+              hasReplacement = true;
+              fileReplacements++;
+              Logger.verbose(
+                `替换 case 语句块中表达式语句的字符串: "${stringValue}" -> ${functionName}(${quoteType === 'single' ? "'" : '"'}${key}${quoteType === 'single' ? "'" : '"'})`
+              );
+            }
           }
         });
       },
@@ -1276,6 +1421,12 @@ export async function scanAndReplaceAll(): Promise<void> {
       // 处理枚举成员的值
       TSEnumMember(path: any) {
         const initializer = path.node.initializer;
+
+        // 检查枚举成员值是否已经是国际化函数调用
+        if (initializer && isI18nFunctionCall({ node: initializer }, functionName)) {
+          Logger.verbose(`跳过已经国际化的枚举成员值`);
+          return;
+        }
 
         // 只处理枚举成员的值部分
         if (t.isStringLiteral(initializer) && containsChinese(initializer.value)) {
@@ -1298,6 +1449,12 @@ export async function scanAndReplaceAll(): Promise<void> {
       ClassProperty(path: any) {
         const valueNode = path.node.value;
 
+        // 检查类属性值是否已经是国际化函数调用
+        if (valueNode && isI18nFunctionCall({ node: valueNode }, functionName)) {
+          Logger.verbose(`跳过已经国际化的类属性默认值`);
+          return;
+        }
+
         // 只处理值部分，键名不处理
         if (valueNode && t.isStringLiteral(valueNode) && containsChinese(valueNode.value)) {
           const stringValue = valueNode.value;
@@ -1317,6 +1474,12 @@ export async function scanAndReplaceAll(): Promise<void> {
 
       // 处理函数参数默认值
       AssignmentPattern(path: any) {
+        // 检查默认值是否已经是国际化函数调用
+        if (path.node.right && isI18nFunctionCall({ node: path.node.right }, functionName)) {
+          Logger.verbose(`跳过已经国际化的函数参数默认值`);
+          return;
+        }
+
         // 只处理默认值部分，参数名不处理
         if (t.isStringLiteral(path.node.right) && containsChinese(path.node.right.value)) {
           // 确保不在类型声明中
@@ -1616,6 +1779,12 @@ export async function scanAndReplaceAll(): Promise<void> {
       ThrowStatement(path: any) {
         const argument = path.node.argument;
 
+        // 检查throw语句参数是否已经是国际化函数调用
+        if (argument && isI18nFunctionCall({ node: argument }, functionName)) {
+          Logger.verbose(`跳过已经国际化的throw语句`);
+          return;
+        }
+
         // 处理直接 throw '中文'
         if (t.isStringLiteral(argument) && containsChinese(argument.value)) {
           const stringValue = argument.value;
@@ -1638,6 +1807,12 @@ export async function scanAndReplaceAll(): Promise<void> {
 
           if (newExpr.arguments && Array.isArray(newExpr.arguments)) {
             newExpr.arguments.forEach((arg: any, index: number) => {
+              // 检查Error构造函数参数是否已经是国际化函数调用
+              if (arg && isI18nFunctionCall({ node: arg }, functionName)) {
+                Logger.verbose(`跳过已经国际化的throw new Error()参数`);
+                return;
+              }
+
               if (t.isStringLiteral(arg) && containsChinese(arg.value)) {
                 const stringValue = arg.value;
                 const key = createI18nKey(stringValue);

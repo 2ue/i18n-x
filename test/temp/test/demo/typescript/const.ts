@@ -1,0 +1,275 @@
+import { useTranslation } from 'react-i18next';
+const { $t1 } = useTranslation();
+
+export const CHANGE_PRIORITY_OPTIONS = [
+{ value: '1', text: 'L1', tag: 'error' },
+{ value: '2', text: 'L2', tag: 'warning' },
+{ value: '3', text: 'L3', tag: 'warning' },
+{ value: '4', text: 'L4', tag: 'success' }];
+
+export const CHANGE_PRIORITY_OPTIONS_L = [
+{ value: 'L1', text: 'L1', tag: 'error' },
+{ value: 'L2', text: 'L2', tag: 'warning' },
+{ value: 'L3', text: 'L3', tag: 'warning' },
+{ value: 'L4', text: 'L4', tag: 'success' }];
+
+export const CHANGE_QUEUE_LEVEL_OPTIONS = [
+{ value: '0', text: $t1('pu_tong') },
+{ value: '1', text: $t1('jin_ji') }];
+
+
+export const CHANGE_NODES_MAP = {
+  PERFECT_SCHEME: '1',
+  ASP_AUTHORIZATION: '2',
+  ORIGINAL_FACTORY_AUTHORIZATION: '3',
+  CUSTOMER_AUTHORIZATION: '4',
+  DEPLOYMENT_IMPLEMENTATION: '5',
+  CUSTOMER_ACCEPTANCE: '6',
+  // END_EVENT: '7',
+  FAILURE_FOLLOW_UP: '8',
+  ORIGINAL_FACTORY_TECH_AUTHORIZATION: '9',
+  ASP_TECH_AUTHORIZATION: '10'
+};
+
+export const CHANGE_NODES_TEXT_MAP = {
+  PERFECT_SCHEME: '完善方案',
+  // 旧的名字，保留兼容查询
+  ASP_AUTHORIZATION_OLD: 'ASP授权',
+  ASP_AUTHORIZATION: '预评估',
+  // 旧的名字，保留兼容查询
+  ORIGINAL_FACTORY_AUTHORIZATION_OLD: '原厂授权',
+  ORIGINAL_FACTORY_AUTHORIZATION: '原厂管理授权',
+  CUSTOMER_AUTHORIZATION: '客户授权',
+  DEPLOYMENT_IMPLEMENTATION: '部署实施',
+  CUSTOMER_ACCEPTANCE: '客户验收',
+  // END_EVENT: '结束事件',
+  FAILURE_FOLLOW_UP: '失败跟进',
+  ORIGINAL_FACTORY_TECH_AUTHORIZATION: '原厂技术授权',
+  ASP_TECH_AUTHORIZATION: 'ASP技术评审'
+};
+
+// 这个枚举主要是对比数据同步一致性
+export const CHANGE_NODES_TEXT_MAP_VALUE = {
+  [CHANGE_NODES_TEXT_MAP.PERFECT_SCHEME]: CHANGE_NODES_MAP.PERFECT_SCHEME,
+  [CHANGE_NODES_TEXT_MAP.ASP_AUTHORIZATION_OLD]: CHANGE_NODES_MAP.ASP_AUTHORIZATION,
+  [CHANGE_NODES_TEXT_MAP.ASP_AUTHORIZATION]: CHANGE_NODES_MAP.ASP_AUTHORIZATION,
+  [CHANGE_NODES_TEXT_MAP.ORIGINAL_FACTORY_AUTHORIZATION_OLD]: CHANGE_NODES_MAP.ORIGINAL_FACTORY_AUTHORIZATION,
+  [CHANGE_NODES_TEXT_MAP.ORIGINAL_FACTORY_AUTHORIZATION]: CHANGE_NODES_MAP.ORIGINAL_FACTORY_AUTHORIZATION,
+  [CHANGE_NODES_TEXT_MAP.CUSTOMER_AUTHORIZATION]: CHANGE_NODES_MAP.CUSTOMER_AUTHORIZATION,
+  [CHANGE_NODES_TEXT_MAP.DEPLOYMENT_IMPLEMENTATION]: CHANGE_NODES_MAP.DEPLOYMENT_IMPLEMENTATION,
+  [CHANGE_NODES_TEXT_MAP.CUSTOMER_ACCEPTANCE]: CHANGE_NODES_MAP.CUSTOMER_ACCEPTANCE,
+  [CHANGE_NODES_TEXT_MAP.FAILURE_FOLLOW_UP]: CHANGE_NODES_MAP.FAILURE_FOLLOW_UP,
+  [CHANGE_NODES_TEXT_MAP.ORIGINAL_FACTORY_TECH_AUTHORIZATION]: CHANGE_NODES_MAP.ORIGINAL_FACTORY_TECH_AUTHORIZATION,
+  [CHANGE_NODES_TEXT_MAP.ASP_TECH_AUTHORIZATION]: CHANGE_NODES_MAP.ASP_TECH_AUTHORIZATION
+};
+
+// 流程节点不需要兜底
+export const CHANGE_PROCESS_NODES = [
+{ value: $t1('wan_shan_fang_an'), text: $t1('wan_shan_fang_an') },
+{ value: $t1('yuan_chang_ji_shu_shou_quan'), text: $t1('yuan_chang_ji_shu_shou_quan') },
+{ value: $t1('yu_ping_gu'), text: $t1('yu_ping_gu') },
+{ value: $t1('ji_shu_ping_shen'), text: $t1('ji_shu_ping_shen') },
+{ value: $t1('yuan_chang_guan_li_shou_quan'), text: $t1('yuan_chang_guan_li_shou_quan') },
+{ value: $t1('ke_hu_shou_quan'), text: $t1('ke_hu_shou_quan') },
+{ value: $t1('bu_shu_shi_shi'), text: $t1('bu_shu_shi_shi') },
+{ value: $t1('ke_hu_yan_shou'), text: $t1('ke_hu_yan_shou') },
+{ value: $t1('shi_bai_gen_jin'), text: $t1('shi_bai_gen_jin') }];
+
+
+export const CHANGE_NODES = [
+{ id: '1', label: $t1('wan_shan_fang_an') },
+{ id: '9', label: $t1('yuan_chang_ji_shu_shou_quan') },
+{ id: '2', label: $t1('yu_ping_gu') },
+{ id: '10', label: $t1('ji_shu_ping_shen') },
+{ id: '3', label: $t1('yuan_chang_guan_li_shou_quan') },
+{ id: '4', label: $t1('ke_hu_shou_quan') },
+{ id: '5', label: $t1('bu_shu_shi_shi') },
+{ id: '6', label: $t1('ke_hu_yan_shou') },
+// { id: '7', label: '结束事件' },
+{ id: '8', label: $t1('shi_bai_gen_jin') }];
+
+
+export const OPERATIONS_VALUE = {
+  // 同意
+  AGREE: '1',
+  // 拒绝
+  REFUSE: '2',
+  // 认领
+  CLAIM: '3',
+  // 转单
+  TRANSFORM: '3',
+  // 更新
+  UPDATE: '3',
+  // 驳回
+  JUMP: '4',
+  // 拒绝
+  NEW_REFUSE: '10'
+};
+
+export const BATCH_ACTIONS = {
+  Unknown: 0,
+  BatchComplete: 1,
+  BatchOther: 2,
+  BatchMe: 3,
+  BatchJump: 4,
+  BatchEdit: 5,
+  ExportChangeList: 6
+};
+export const BATCH_ACTIONS_ENUMS = [
+{ value: 1, text: $t1('pi_liang_shen_pi') },
+{ value: 2, text: $t1('pi_liang_zhuan_dan') },
+{ value: 3, text: $t1('pi_liang_ren_ling') },
+{ value: 4, text: $t1('pi_liang_tiao_guo') },
+{ value: 5, text: $t1('pi_liang_bian_ji') },
+{ value: 6, text: $t1('pi_liang_dao_chu') },
+{ value: 7, text: $t1('pi_liang_chuang_jian') }];
+
+
+export const BATCH_TASK_STATUS = {
+  TaskUnknown: 0,
+  Running: 1,
+  Succeed: 2,
+  Fail: 3
+};
+
+export const AGREE_OPERATIONS_TEXT = {
+  [CHANGE_NODES_MAP.PERFECT_SCHEME]: '提交',
+  [CHANGE_NODES_MAP.ORIGINAL_FACTORY_TECH_AUTHORIZATION]: '通过',
+  [CHANGE_NODES_MAP.ASP_AUTHORIZATION]: '通过',
+  [CHANGE_NODES_MAP.ASP_TECH_AUTHORIZATION]: '通过',
+  [CHANGE_NODES_MAP.ORIGINAL_FACTORY_AUTHORIZATION]: '通过',
+  [CHANGE_NODES_MAP.CUSTOMER_AUTHORIZATION]: '通过',
+  [CHANGE_NODES_MAP.DEPLOYMENT_IMPLEMENTATION]: '部署成功',
+  [CHANGE_NODES_MAP.CUSTOMER_ACCEPTANCE]: '验收成功',
+  [CHANGE_NODES_MAP.FAILURE_FOLLOW_UP]: '继续变更'
+};
+
+export const REFUSE_OPERATIONS_TEXT = {
+  [CHANGE_NODES_MAP.PERFECT_SCHEME]: '拒绝',
+  [CHANGE_NODES_MAP.ORIGINAL_FACTORY_TECH_AUTHORIZATION]: '拒绝',
+  [CHANGE_NODES_MAP.ASP_AUTHORIZATION]: '拒绝',
+  [CHANGE_NODES_MAP.ASP_TECH_AUTHORIZATION]: '拒绝',
+  [CHANGE_NODES_MAP.ORIGINAL_FACTORY_AUTHORIZATION]: '拒绝',
+  [CHANGE_NODES_MAP.CUSTOMER_AUTHORIZATION]: '拒绝',
+  [CHANGE_NODES_MAP.DEPLOYMENT_IMPLEMENTATION]: '部署失败',
+  [CHANGE_NODES_MAP.CUSTOMER_ACCEPTANCE]: '验收失败',
+  [CHANGE_NODES_MAP.FAILURE_FOLLOW_UP]: '修改方案'
+};
+export const JUMP_OPERATIONS_TEXT = {
+  [CHANGE_NODES_MAP.PERFECT_SCHEME]: '驳回',
+  [CHANGE_NODES_MAP.ORIGINAL_FACTORY_TECH_AUTHORIZATION]: '驳回',
+  [CHANGE_NODES_MAP.ASP_AUTHORIZATION]: '驳回',
+  [CHANGE_NODES_MAP.ASP_TECH_AUTHORIZATION]: '驳回',
+  [CHANGE_NODES_MAP.ORIGINAL_FACTORY_AUTHORIZATION]: '驳回',
+  [CHANGE_NODES_MAP.CUSTOMER_AUTHORIZATION]: '驳回',
+  [CHANGE_NODES_MAP.DEPLOYMENT_IMPLEMENTATION]: '重排/取消'
+};
+
+export const AGREE_TEXTAREA = {
+  5: '过程异常时需说明情况，提交后单据将流转至验收节点',
+  6: '过程异常时需说明情况，提交后流程終止且表单信息无法更改',
+  8: '实施人操作失误且未对客户环境造成影响时可操作，提交后单据将回转至最后的授杈节点'
+};
+
+export const REFUSE_TEXTAREA = {
+  1: '提交后流程将中止；若无与实际情况匹配的原因分类，可联系adayyang/jjingymeng',
+  9: '提交后流程将中止；若无与实际情况匹配的原因分类，可联系adayyang/jjingymeng',
+  2: '提交后流程将中止；若无与实际情况匹配的原因分类，可联系adayyang/jjingymeng',
+  10: '提交后流程将中止；若无与实际情况匹配的原因分类，可联系adayyang/jjingymeng',
+  3: '提交后流程将中止；若无与实际情况匹配的原因分类，可联系adayyang/jjingymeng',
+  4: '提交后流程将中止；若无与实际情况匹配的原因分类，可联系adayyang/jjingymeng',
+  5: '提交后单据将流转至复盘节点',
+  6: '提交后单据将流转至复盘节点',
+  8: '实施人操作异常、但未对客户环境造成影响，或变更方案有误时可操作，提交后单据将回转至完善方案节点'
+};
+
+export const JUMP_TEXTAREA = {
+  1: '若控制表无误、无需更新时可操作，提交后单据将回转至驳回前节点',
+  9: '可选择已经过的节点进行“驳回”操作，提交后单据将回退；若无与实际情况匹配的原因分类，可联系adayyang/jingymeng',
+  2: '可选择已经过的节点进行“驳回”操作，提交后单据将回退；若无与实际情况匹配的原因分类，可联系adayyang/jingymeng',
+  10: '可选择已经过的节点进行“驳回”操作，提交后单据将回退；若无与实际情况匹配的原因分类，可联系adayyang/jingymeng',
+  3: '可选择已经过的节点进行“驳回”操作，提交后单据将回退；若无与实际情况匹配的原因分类，可联系adayyang/jingymeng',
+  4: '可选择已经过的节点进行“驳回”操作，提交后单据将回退；若无与实际情况匹配的原因分类，可联系adayyang/jingymeng',
+  5: '客户调整窗口期时可操作，提交后单据将返回至上一个授权节点'
+};
+
+export const CHANGE_STATUS = [
+{ value: '0', text: $t1('jin_xing_zhong'), color: '#22C265' },
+{ value: '1', text: $t1('zheng_chang_jie_shu'), color: '#AEAEAE' },
+{ value: '2', text: $t1('yi_chang_zhong_zhi'), color: '#E75151' }];
+
+
+export const CHANGE_STATUS_MAPS = {
+  RUNNING: '0',
+  COMPLETE: '1',
+  ABEND: '2'
+};
+
+export const CHANGE_TYPES = [
+{ value: '0', text: $t1('fu_wu_ren_wu') },
+{ value: '1', text: $t1('fu_wu_zi_ren_wu') }];
+
+
+export const REASON_DETAIL = {
+  [OPERATIONS_VALUE.AGREE]: '如原因分类为“S变更过程异常但最终成功”，请详细描述异常原因和过程；如有事件单，请附事件单id',
+  [OPERATIONS_VALUE.REFUSE]: '请详细描述失败原因和过程；如有事件单，请附事件单id'
+};
+
+
+export const TRANSFORM_ENUMS = [
+{
+  label: $t1('zhi_ding_zhang_hao'),
+  value: '2'
+},
+{
+  label: $t1('dui_lie'),
+  value: '1'
+}];
+
+export const TRANSFORM_MAPS = {
+  ACCOUNT: '2',
+  QUEUE: '1'
+};
+
+export const DEPLOYMENT_MAPS: Record<string, string> = {
+  ASP: '1',
+  CUSTOMER: '2',
+  JIAOCHA: '3',
+  TENCENT: '4'
+};
+export const DEPLOYMENT_TEXT_MAPS: Record<string, string> = {
+  [DEPLOYMENT_MAPS.ASP]: 'ASP部署',
+  [DEPLOYMENT_MAPS.CUSTOMER]: '客户部署',
+  [DEPLOYMENT_MAPS.JIAOCHA]: '交叉部署',
+  [DEPLOYMENT_MAPS.TENCENT]: '腾讯部署'
+};
+export const DEPLOYMENT_ENUMS = Object.keys(DEPLOYMENT_MAPS).map((key) => ({
+  value: DEPLOYMENT_MAPS[key],
+  text: DEPLOYMENT_TEXT_MAPS[DEPLOYMENT_MAPS[key]]
+}));
+
+// 变更来源
+export const SOURCE_ENUMS = [
+{ value: $t1('hang_ye'), text: $t1('hang_ye') },
+{ value: $t1('ke_hu'), text: $t1('ke_hu') },
+{ value: $t1('chan_yan'), text: $t1('chan_yan') },
+{ value: $t1('yun_wei_zhu_dong_fu_wu'), text: $t1('yun_wei_zhu_dong_fu_wu') },
+{ value: $t1('feng_xian_dan_pai_cha'), text: $t1('feng_xian_dan_pai_cha') },
+{ value: $t1('feng_xian_dan_xiu_fu'), text: $t1('feng_xian_dan_xiu_fu') },
+{ value: $t1('tian_xun'), text: $t1('tian_xun') },
+{ value: $t1('qi_ta'), text: $t1('qi_ta') }];
+
+
+export enum ChangeChannel {
+  page = 1,
+  group = 2,
+  api = 3,
+  tianxu = 4,
+}
+
+export const ChangeChannelMaps = {
+  [ChangeChannel.page]: '页面',
+  [ChangeChannel.group]: '作业群',
+  [ChangeChannel.api]: '极光',
+  [ChangeChannel.tianxu]: '天巡'
+};

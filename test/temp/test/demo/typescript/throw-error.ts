@@ -11,17 +11,17 @@ export async function getBaseInfoClient(): Promise<any> {const api = '/fe-api/mi
     }
     throw new Error(`请求接口${api}失败: ${code}`);
   } catch (e: any) {
-    console.error($t1('获取数据失败'), e);
+    console.error($t1('huo_qu_shu_ju_shi_bai'), e);
     return {} as any;
   }
 }
 const renderTodoList = (list = [], treeIdMap: any) => {
-  if (!list.length) return $t1('<div>暂无数据</div>');
+  if (!list.length) return $t1('zan_wu_shu_ju_1czcgv');
   const cols = list.
   map((v: any) => `
         <tr>
-          <td bgcolor="${thBgcolor}" style="${fontSize};${thBorderT}">${treeIdMap?.[v.level3]?.Name || $t1('其它诉求')}</td>
-          <td bgcolor="${thBgcolor}" style="${fontSize};${tdBorderLT}">${treeIdMap?.[v.level4]?.Name || $t1('自闭环待办')}</td>
+          <td bgcolor="${thBgcolor}" style="${fontSize};${thBorderT}">${treeIdMap?.[v.level3]?.Name || $t1('qi_ta_su_qiu')}</td>
+          <td bgcolor="${thBgcolor}" style="${fontSize};${tdBorderLT}">${treeIdMap?.[v.level4]?.Name || $t1('zi_bi_huan_dai_ban')}</td>
           <td style="${fontSize};${tdBorderLT}">${v?.toDoManager || ''}</td>
           <td style="${fontSize};${tdBorderLT}">${priorityMap[v?.priority] || ''}</td>
           <td style="${fontSize};${tdBorderLT}">${v?.toDoDescription || 'toDoDescriptiontoDoDescriptiontoDoDescriptiontoDoDescriptiontoDoDescription'}</td>
@@ -31,21 +31,12 @@ const renderTodoList = (list = [], treeIdMap: any) => {
   return '<table cellspacing="0" cellpadding="5" style="width: 100%; border: 0.5px solid #D4D5D7">\n        <thead>\n          <tr style="text-align: left">\n            <th bgcolor="' +
 
 
-  thBgcolor + '" style="' + fontSize + ';' + thWidth + $t1('">三级目录</th>
-            <th style="') +
-  fontSize + ';' + thBorderL + ';' + thWidth + '" bgcolor="' + thBgcolor + $t1('">四级目录</th>
-            <th style="') +
-  fontSize + ';' + thBorderL + ';' + thWidth + '" bgcolor="' + thBgcolor + $t1('">处理人</th>
-            <th style="') +
-  fontSize + ';' + thBorderL + ';' + thWidth + '" bgcolor="' + thBgcolor + $t1('">优先级</th>
-            <th style="') +
-  fontSize + ';' + thBorderL + ';' + thWidth + '" bgcolor="' + thBgcolor + $t1('">待办描述</th>
-            <th style="') +
-  fontSize + ';' + thBorderL + ';' + thWidth + '" bgcolor="' + thBgcolor + $t1('">计划完成时间</th>
-          </tr>
-        </thead>
-        <tbody>
-          ') +
+  thBgcolor + '" style="' + fontSize + ';' + thWidth + $t1('san_ji_mu_lu') +
+  fontSize + ';' + thBorderL + ';' + thWidth + '" bgcolor="' + thBgcolor + $t1('si_ji_mu_lu') +
+  fontSize + ';' + thBorderL + ';' + thWidth + '" bgcolor="' + thBgcolor + $t1('chu_li_ren') +
+  fontSize + ';' + thBorderL + ';' + thWidth + '" bgcolor="' + thBgcolor + $t1('you_xian_ji') +
+  fontSize + ';' + thBorderL + ';' + thWidth + '" bgcolor="' + thBgcolor + $t1('dai_ban_miao_shu') +
+  fontSize + ';' + thBorderL + ';' + thWidth + '" bgcolor="' + thBgcolor + $t1('ji_hua_wan_cheng_shi_jian') +
 
 
 
