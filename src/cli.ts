@@ -132,8 +132,12 @@ program
         const func = config.replacement?.functionName ?? defaultConfig.replacement!.functionName!;
         const quoteType = config.replacement?.quoteType ?? defaultConfig.replacement!.quoteType!;
         const quote = quoteType === 'single' ? "'" : '"';
-        const regex = new RegExp(`\\${func}\\(${quote}([^${quote}]+)${quote}\\)`, 'g');
+
+        const regex = new RegExp(`${func}\\(${quote}([a-zA-Z_]+)${quote}\\)`, 'g');
+        // console.log(regex);
+        Logger.verbose(`正则: ${regex}`);
         const updated = content.replace(regex, (match, key) => {
+          Logger.verbose(`匹配KEY: ${key}`);
           const value = translations[key];
           return value ? `${func}(${quote}${value}${quote})` : match;
         });

@@ -371,14 +371,32 @@ const ComplexDynamicComponent: React.FC = () => {
       throw new Error(`请求接口失败`);
     }
   }
-
+  const validateNodeCheckList = (nodeCheckList: CheckListItem[]) => {
+    // 执行验证逻辑
+    const i = nodeCheckListValidator(nodeCheckList);
+    setErrorIndex(i);
+    if (i !== -1) {
+      return '请完善评审项';
+    }
+    return '';
+  };
   return (
     <div className="complex-dynamic-component" style={containerStyle}>
       <header>
         <h1>欢迎使用我们的应用</h1>
 
         <div className="controls" title={'测试' + theme}>
-          <button onClick={toggleLanguage}>
+          <button
+            onClick={toggleLanguage}
+            rules={props.required ? {
+              validate(v: any) {
+                if (nodeCheckListValidator(v) !== -1) {
+                  return '请完善评审项';
+                }
+                return undefined;
+              },
+            } : {}}
+          >
             {language === '中文' ? '切换为英文' : '切换为中文'}
           </button>
 
