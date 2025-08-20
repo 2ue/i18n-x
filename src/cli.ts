@@ -35,7 +35,7 @@ function generateSimpleReport(results: CheckResult[]): string {
 
   results.forEach((result) => {
     report += `### 📄 ${result.file}\n\n`;
-    
+
     result.issues.forEach((issue, index) => {
       report += `${index + 1}. "${issue.text}"\n`;
     });
@@ -206,13 +206,13 @@ program
       // 是否生成文件
       if (options.file !== false) {
         const outputPath = options.output || 'i18n-check-report.md';
-        const reportContent = options.simple 
+        const reportContent = options.simple
           ? generateSimpleReport(results)
           : generateDetailedReport(results);
-        
+
         await writeFileWithTempDir(outputPath, reportContent);
         Logger.success(`检查结果已保存到: ${outputPath}`, 'minimal');
-        
+
         if (options.simple) {
           Logger.info('已生成简略版报告（仅包含文件路径和中文文案）', 'minimal');
         } else {
@@ -229,7 +229,7 @@ program
         if (results.length > 5) {
           Logger.info(`  ... 还有 ${results.length - 5} 个文件`, 'minimal');
         }
-        
+
         Logger.info('\n💡 使用 -o 参数或移除 --no-file 参数可生成详细报告文件', 'minimal');
       }
 

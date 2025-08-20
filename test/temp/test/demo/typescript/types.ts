@@ -1,7 +1,9 @@
 import { useTranslation } from 'react-i18next';
-const { $t1 } = useTranslation();
-
+const {
+  $t1
+} = useTranslation();
 // TypeScript类型场景测试用例
+
 // 类型注解（不应替换）
 interface User {
   name: string; // 这是类型，不应替换
@@ -11,8 +13,10 @@ interface User {
 
 // 但是值应该替换
 const defaultUser: User = {
-  name: $t1('mo_ren_yong_hu'), // 应该替换
-  title: $t1('yong_hu'), // 应该替换
+  name: $t1('mo_ren_yong_hu'),
+  // 应该替换
+  title: $t1('yong_hu'),
+  // 应该替换
   age: 25
 };
 
@@ -47,7 +51,6 @@ interface Config {
   language?: string;
   timeout?: number;
 }
-
 const defaultConfig: Config = {
   theme: $t1('mo_ren_zhu_ti'),
   language: $t1('zhong_wen'),
@@ -55,10 +58,7 @@ const defaultConfig: Config = {
 };
 
 // 类型映射
-type ReadonlyType<T> = { readonly [P in
-keyof T]: T[P] };
-
-
+type ReadonlyType<T> = { readonly [P in keyof T]: T[P] };
 const readonlyUser: ReadonlyType<User> = {
   name: $t1('zhi_du_yong_hu'),
   title: $t1('yong_hu'),
@@ -66,9 +66,15 @@ const readonlyUser: ReadonlyType<User> = {
 };
 
 // 条件类型
-type MessageResponse<T> = T extends {success: true;} ?
-{data: any;message: '操作成功';} :
-{error: any;message: '操作失败';};
+type MessageResponse<T> = T extends {
+  success: true;
+} ? {
+  data: any;
+  message: '操作成功';
+} : {
+  error: any;
+  message: '操作失败';
+};
 
 // 类型守卫
 function isAdminUser(user: any): user is AdminUser {
@@ -81,7 +87,6 @@ const userTypes = {
   EDITOR: $t1('bian_ji_zhe'),
   VIEWER: $t1('cha_kan_zhe')
 } as const;
-
 type UserType = typeof userTypes[keyof typeof userTypes];
 
 // 函数重载
@@ -89,18 +94,16 @@ function formatMessage(type: '成功'): '操作已成功完成';
 function formatMessage(type: '错误', error?: string): string;
 function formatMessage(type: string, error?: string): string {
   if (type === $t1('cheng_gong')) return $t1('cao_zuo_yi_cheng_gong_wan_cheng');
-  return $t1('cuo_wu_2osmsp') + (error || $t1('wei_zhi_cuo_wu'));
+  return `${$t1('cuo_wu')}：${error || $t1('wei_zhi_cuo_wu')}`;
 }
 
 // 泛型函数
 function getValue<T>(): T {
   return {} as T;
 }
-
 function identity<T>(value: T): T {
   return value;
 }
-
 const value = identity($t1('zhe_shi_yi_ge_zhi'));
 
 // 声明文件
@@ -115,7 +118,6 @@ namespace Validation {
     isValid(s: string): boolean;
     errorMessage: string;
   }
-
   export class RequiredValidator implements StringValidator {
     isValid(s: string): boolean {
       return s.length > 0;
@@ -129,9 +131,8 @@ function sealed(constructor: Function) {
   Object.seal(constructor);
   Object.seal(constructor.prototype);
 }
-
-@sealed class
-GreeterService {
+@sealed
+class GreeterService {
   greeting: string;
   constructor(message: string) {
     this.greeting = message;

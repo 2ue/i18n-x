@@ -1,7 +1,9 @@
 import { useTranslation } from 'react-i18next';
-const { $t1 } = useTranslation();
-
+const {
+  $t1
+} = useTranslation();
 // 混合内容边界情况测试用例
+
 // 中英文混合字符串
 const mixedString1 = $t1('zhe_shi_zi_fu_chuan');
 const mixedString2 = $t1('zhong_wen_11ddvf');
@@ -36,15 +38,18 @@ const escapedString = $t1('zhe_shi_zhuan_yi_de_yin_hao_zhong_wen_he');
 const escapedChars = $t1('zhe_shi_huan_hang_fu_he_zhi_biao_fu_de');
 
 // 中文与多行字符串混合
-const multilineWithChinese = $t1('di_yi_hang_zhong_wen_di_san_hang');
-
-
-
-
+const multilineWithChinese = `
+  ${$t1('di_yi_hang')}
+  Second line with ${$t1('zhong_wen')}
+  ${$t1('di_san_hang')} with English
+`;
 
 // 中文与模板字符串表达式混合
-const user = { name: $t1('zhang_san'), age: 25 };
-const templateWithExpr = $t1('yong_hu') + user.name + $t1('de_nian_ling_shi') + user.age + $t1('sui');
+const user = {
+  name: $t1('zhang_san'),
+  age: 25
+};
+const templateWithExpr = `${$t1('yong_hu')}${user.name}${$t1('de_nian_ling_shi')}${user.age}岁`;
 
 // 中文与代码注释混合（注释不应被替换）
 const commentedCode = $t1('zhe_shi_dai_ma'); // 这是中文注释，不应替换
@@ -55,7 +60,7 @@ const commentedCode = $t1('zhe_shi_dai_ma'); // 这是中文注释，不应替�
 
 // 中文与函数调用混合
 function process(input) {
-  return $t1('chu_li_jie_guo') + input;
+  return `${$t1('chu_li_jie_guo_137ila')}：${input}`;
 }
 const result = process($t1('shu_ru_shu_ju'));
 

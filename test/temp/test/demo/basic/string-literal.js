@@ -1,7 +1,9 @@
 import { useTranslation } from 'react-i18next';
-const { $t1 } = useTranslation();
-
+const {
+  $t1
+} = useTranslation();
 // 基础字符串字面量测试用例
+
 // 单引号字符串
 const message1 = $t1('ni_hao_shi_jie_zvaf1e');
 
@@ -33,7 +35,7 @@ alert($t1('bao_cun_cheng_gong'));
 
 // 函数参数默认值
 function greet(name = $t1('fang_ke')) {
-  return $t1('ni_hao_2pktas') + name;
+  return `${$t1('ni_hao')}，${name}`;
 }
 
 // 导出字符串常量

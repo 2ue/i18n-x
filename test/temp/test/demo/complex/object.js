@@ -1,7 +1,9 @@
 import { useTranslation } from 'react-i18next';
-const { $t1 } = useTranslation();
-
+const {
+  $t1
+} = useTranslation();
 // 对象字面量测试用例
+
 // 简单对象
 const config = {
   title: $t1('xi_tong_pei_zhi'),
@@ -25,20 +27,23 @@ const form = {
 
 // 方法对象
 const validators = {
-  required: (value) => value ? null : $t1('ci_zi_duan_wei_bi_tian_xiang'),
-  minLength: (min) => (value) => value.length >= min ? null : $t1('zui_shao_xu_yao') + min + $t1('ge_zi_fu')
+  required: value => value ? null : $t1('ci_zi_duan_wei_bi_tian_xiang'),
+  minLength: min => value => value.length >= min ? null : `${$t1('zui_shao_xu_yao')}${min}${$t1('ge_zi_fu')}`
 };
 
 // 对象解构默认值
-function processUser({ name = $t1('ni_ming_yong_hu'), role = $t1('fang_ke') } = {}) {
-  return $t1('chu_li_yong_hu') + name + $t1('jue_se_hns3lf') + role;
+function processUser({
+  name = $t1('ni_ming_yong_hu'),
+  role = $t1('fang_ke')
+} = {}) {
+  return `${$t1('chu_li_yong_hu_13lo9f')}：${name}，${$t1('jue_se')}：${role}`;
 }
 
 // 计算属性名
 const id = 123;
 const dynamic = {
-  ['用户_' + id]: $t1('yong_hu_xin_xi'),
-  [$t1('yong_hu_ming_y5xyq0') + id]: $t1('zhang_san')
+  [$t1('yong_hu_36p30l') + id]: $t1('yong_hu_xin_xi'),
+  [`用户名_${id}`]: $t1('zhang_san')
 };
 
 // 对象方法
@@ -47,12 +52,15 @@ const userService = {
     return $t1('dang_qian_yong_hu');
   },
   formatUser(user) {
-    return $t1('yong_hu_2pj4w0') + user.name + $t1('nian_ling_hrormr') + user.age + $t1('sui');
+    return `${$t1('yong_hu')}：${user.name}，${$t1('nian_ling')}：${user.age}岁`;
   }
 };
 
 // 对象展开
-const baseConfig = { language: $t1('zhong_wen'), theme: $t1('mo_ren_zhu_ti') };
+const baseConfig = {
+  language: $t1('zhong_wen'),
+  theme: $t1('mo_ren_zhu_ti')
+};
 const extendedConfig = {
   ...baseConfig,
   title: $t1('kuo_zhan_pei_zhi'),
@@ -63,7 +71,7 @@ const extendedConfig = {
 const userProfile = {
   _name: $t1('zhang_san'),
   get name() {
-    return $t1('yong_hu_2pj4w0') + this._name;
+    return `${$t1('yong_hu')}：${this._name}`;
   },
   set name(value) {
     this._name = value || $t1('mo_ren_yong_hu');
