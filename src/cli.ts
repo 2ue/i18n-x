@@ -19,9 +19,37 @@ import * as path from 'path';
 const program = new Command();
 
 /**
- * 生成Markdown格式的检查报告
+ * 生成简略格式的检查报告
  */
-function generateMarkdownReport(results: CheckResult[]): string {
+function generateSimpleReport(results: CheckResult[]): string {
+  let report = '# 国际化检查报告（简略版）\n\n';
+
+  let totalIssues = 0;
+  results.forEach((result) => (totalIssues += result.issues.length));
+
+  report += '## 检查摘要\n\n';
+  report += `- **有问题的文件数**: ${results.length}\n`;
+  report += `- **未国际化字符串总数**: ${totalIssues}\n\n`;
+
+  report += '## 问题列表\n\n';
+
+  results.forEach((result) => {
+    report += `### 📄 ${result.file}\n\n`;
+    
+    result.issues.forEach((issue, index) => {
+      report += `${index + 1}. "${issue.text}"\n`;
+    });
+
+    report += '\n';
+  });
+
+  return report;
+}
+
+/**
+ * 生成Markdown格式的检查报告（详细版）
+ */
+function generateDetailedReport(results: CheckResult[]): string {
   let report = '# 国际化检查报告\n\n';
 
   let totalIssues = 0;
@@ -140,7 +168,9 @@ program
   .command('check')
   .description('检查还有哪些文件存在没有被t函数包裹的中文')
   .option('-c, --config <path>', '指定配置文件路径', './i18n.config.json')
-  .option('-o, --output <path>', '输出检查结果到文件（默认为report.md）')
+  .option('-o, --output <path>', '自定义输出文件路径（默认生成i18n-check-report.md）')
+  .option('-s, --simple', '使用简略输出格式，只显示文件路径和中文文案')
+  .option('--no-file', '不生成文件，仅在控制台输出摘要')
   .action(async (options) => {
     try {
       Logger.info(`开始加载配置文件: ${options.config}`, 'verbose');
@@ -164,22 +194,32 @@ program
         return;
       }
 
-      // 输出结果
-      if (options.output) {
-        // 生成Markdown格式报告
-        const reportContent = generateMarkdownReport(results);
-        await writeFileWithTempDir(options.output, reportContent);
-        Logger.success(`检查结果已保存到: ${options.output}`, 'minimal');
+      // 统计信息
+      let totalIssues = 0;
+      results.forEach((result) => (totalIssues += result.issues.length));
+
+      // 控制台输出摘要
+      Logger.info('\n=== 检查结果摘要 ===', 'minimal');
+      Logger.info(`发现 ${results.length} 个文件存在未国际化的中文字符串`, 'minimal');
+      Logger.info(`共计 ${totalIssues} 个未包裹的中文字符串`, 'minimal');
+
+      // 是否生成文件
+      if (options.file !== false) {
+        const outputPath = options.output || 'i18n-check-report.md';
+        const reportContent = options.simple 
+          ? generateSimpleReport(results)
+          : generateDetailedReport(results);
+        
+        await writeFileWithTempDir(outputPath, reportContent);
+        Logger.success(`检查结果已保存到: ${outputPath}`, 'minimal');
+        
+        if (options.simple) {
+          Logger.info('已生成简略版报告（仅包含文件路径和中文文案）', 'minimal');
+        } else {
+          Logger.info('已生成详细版报告（包含行号、类型、上下文等完整信息）', 'minimal');
+        }
       } else {
-        // 控制台输出（简化版本）
-        Logger.info('\n=== 检查结果 ===', 'minimal');
-        Logger.info(`发现 ${results.length} 个文件存在未国际化的中文字符串`, 'minimal');
-
-        let totalIssues = 0;
-        results.forEach((result) => (totalIssues += result.issues.length));
-        Logger.info(`共计 ${totalIssues} 个未包裹的中文字符串`, 'minimal');
-
-        // 显示前几个文件的概览
+        // 仅控制台输出，显示文件预览
         const preview = results.slice(0, 5);
         Logger.info('\n问题文件预览:', 'minimal');
         preview.forEach((result) => {
@@ -189,8 +229,8 @@ program
         if (results.length > 5) {
           Logger.info(`  ... 还有 ${results.length - 5} 个文件`, 'minimal');
         }
-
-        Logger.info('\n💡 使用 -o report.md 参数生成详细报告', 'minimal');
+        
+        Logger.info('\n💡 使用 -o 参数或移除 --no-file 参数可生成详细报告文件', 'minimal');
       }
 
       Logger.success('检查流程已完成', 'minimal');
