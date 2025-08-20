@@ -3,6 +3,7 @@ import { Command } from 'commander';
 const inquirer = require('inquirer').default ?? require('inquirer');
 import { loadConfig, ConfigManager } from './config';
 import { scanAndReplaceAll, checkUnwrappedChinese, CheckResult } from './ast';
+import { checkTranslationCompleteness, generateTranslationReport } from './translation/translation-checker';
 import {
   writeJson,
   findTargetFiles,
@@ -15,6 +16,7 @@ import { version } from '../package.json';
 import { Logger } from './utils/logger';
 import { ConfigValidator } from './utils/config-validator';
 import * as path from 'path';
+import fs from 'fs/promises';
 
 const program = new Command();
 
@@ -285,6 +287,81 @@ program
       Logger.success('批量替换完成', 'minimal');
     } catch (error) {
       Logger.error(`替换过程中发生错误: ${error}`, 'minimal');
+      process.exit(1);
+    }
+  });
+
+program
+  .command('check-translation')
+  .alias('ct')
+  .description('检查语言文件的翻译完整性')
+  .option('-c, --config <path>', '指定配置文件路径', './i18n.config.json')
+  .option('-l, --languages <languages>', '指定要检查的目标语言，用逗号分隔', 'en-US,ja-JP,ko-KR')
+  .option('-o, --output <path>', '指定报告输出路径（Markdown格式）')
+  .action(async (options) => {
+    try {
+      Logger.info(`加载配置文件: ${options.config}`, 'verbose');
+      const configObj = loadConfig(options.config);
+      ConfigManager.init(configObj);
+      
+      // 验证配置
+      const validation = ConfigValidator.validateConfigUsage();
+      if (!validation.isValid) {
+        Logger.error('配置验证失败，无法继续执行', 'minimal');
+        process.exit(1);
+      }
+
+      ConfigValidator.checkConfigConsistency();
+      Logger.info('配置加载完成，开始执行翻译完整性检查流程...', 'verbose');
+
+      // 解析目标语言
+      const targetLanguages = options.languages.split(',').map((lang: string) => lang.trim());
+      Logger.verbose(`目标语言: ${targetLanguages.join(', ')}`);
+
+      // 执行翻译完整性检查
+      const summary = await checkTranslationCompleteness(targetLanguages);
+
+      // 生成详细报告
+      const report = generateTranslationReport(summary);
+
+      // 输出结果
+      if (options.output) {
+        // 输出到指定的Markdown文件
+        await fs.writeFile(options.output, report, 'utf-8');
+        Logger.success(`✅ 翻译完整性检查完成！`, 'minimal');
+        Logger.info(`详细报告已保存到: ${options.output}`, 'normal');
+      } else {
+        // 控制台输出摘要信息
+        Logger.success(`✅ 翻译完整性检查完成！`, 'minimal');
+        Logger.info(``, 'normal');
+        Logger.info(`=== 翻译完整性检查摘要 ===`, 'normal');
+        Logger.info(`源文件: ${path.basename(summary.sourceFile)}`, 'normal');
+        Logger.info(`总语言数: ${summary.totalLanguages}`, 'normal');
+        Logger.info(`存在的语言文件数: ${summary.existingLanguages}`, 'normal');
+        Logger.info(`平均完成度: ${summary.overallCompletionRate.toFixed(1)}%`, 'normal');
+        Logger.info(``, 'normal');
+
+        // 显示各语言状态
+        for (const targetFile of summary.targetFiles) {
+          const status = targetFile.exists ? '存在' : '缺失';
+          const completionRate = targetFile.result ? `${targetFile.result.completionRate.toFixed(1)}%` : 'N/A';
+          const statusIcon = targetFile.exists ? 
+            (targetFile.result!.completionRate >= 95 ? '✅' : targetFile.result!.completionRate >= 50 ? '⚠️' : '❌') : '❌';
+          
+          Logger.info(`${statusIcon} ${targetFile.language}: ${status} (完成度: ${completionRate})`, 'normal');
+          
+          if (targetFile.result && targetFile.result.untranslatedKeys > 0) {
+            Logger.info(`   - 未翻译条目: ${targetFile.result.untranslatedKeys}个`, 'normal');
+          }
+        }
+
+        Logger.info(``, 'normal');
+        Logger.info(`💡 提示: 使用 -o 参数生成详细的Markdown报告`, 'normal');
+        Logger.info(`   示例: i18n-xy check-translation -o translation-report.md`, 'normal');
+      }
+
+    } catch (error) {
+      Logger.error(`翻译完整性检查过程中发生错误: ${error}`, 'minimal');
       process.exit(1);
     }
   });
