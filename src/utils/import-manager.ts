@@ -16,7 +16,7 @@ function hasExistingImport(ast: any, importStatement: string): boolean {
   try {
     const importAst = parse(importStatement, {
       sourceType: 'module',
-      plugins: ['jsx', 'typescript']
+      plugins: ['jsx', 'typescript'],
     });
 
     if (!importAst.program?.body || importAst.program.body.length === 0) {
@@ -70,7 +70,7 @@ function addImportToAST(
     // 解析import语句为AST节点
     const importAst = parse(importStatement, {
       sourceType: 'module',
-      plugins: ['jsx', 'typescript']
+      plugins: ['jsx', 'typescript'],
     });
 
     // 将解析出的语句添加到指定位置
@@ -152,9 +152,8 @@ function addEmptyLineAfterImport(code: string, importStatement: string): string 
   }
 
   const nextLineEnd = code.indexOf('\n', nextLineStart);
-  const nextLine = nextLineEnd === -1 ?
-    code.substring(nextLineStart) :
-    code.substring(nextLineStart, nextLineEnd);
+  const nextLine =
+    nextLineEnd === -1 ? code.substring(nextLineStart) : code.substring(nextLineStart, nextLineEnd);
 
   // 如果下一行不是空行，插入空行
   if (nextLine.trim() !== '') {
@@ -166,22 +165,22 @@ function addEmptyLineAfterImport(code: string, importStatement: string): string 
 
 /**
  * Import管理器 - 封装import插入相关的逻辑
- * 
+ *
  * 功能：
  * - 管理单个文件的import插入状态
  * - 按需插入import语句到AST
  * - 为生成的代码添加空行格式
- * 
+ *
  * 使用示例：
  * ```typescript
  * const importManager = new ImportManager();
- * 
+ *
  * // 处理每个文件时重置状态
  * importManager.reset();
- * 
+ *
  * // 在AST遍历后插入import
  * importManager.insertImportIfNeeded(ast, file, config...);
- * 
+ *
  * // 在代码生成后添加空行
  * const finalCode = importManager.addEmptyLineToOutput(generatedCode);
  * ```
@@ -257,4 +256,4 @@ export class ImportManager {
   get insertedStatement(): string {
     return this.insertedImportStatement;
   }
-} 
+}

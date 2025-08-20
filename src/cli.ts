@@ -2,7 +2,7 @@ import { Command } from 'commander';
 // 处理CommonJS兼容性
 const inquirer = require('inquirer').default ?? require('inquirer');
 import { loadConfig, ConfigManager } from './config';
-import { scanAndReplaceAll } from './ast';
+import { scanAndReplaceAll, checkUnwrappedChinese, CheckResult } from './ast';
 import {
   writeJson,
   findTargetFiles,
@@ -17,6 +17,40 @@ import { ConfigValidator } from './utils/config-validator';
 import * as path from 'path';
 
 const program = new Command();
+
+/**
+ * 生成Markdown格式的检查报告
+ */
+function generateMarkdownReport(results: CheckResult[]): string {
+  let report = '# 国际化检查报告\n\n';
+
+  let totalIssues = 0;
+  results.forEach((result) => (totalIssues += result.issues.length));
+
+  report += '## 检查摘要\n\n';
+  report += `- **有问题的文件数**: ${results.length}\n`;
+  report += `- **未国际化字符串总数**: ${totalIssues}\n\n`;
+
+  report += '## 详细结果\n\n';
+
+  results.forEach((result) => {
+    report += `### 📄 ${result.file}\n\n`;
+    report += `发现 ${result.issues.length} 个未国际化的中文字符串：\n\n`;
+
+    result.issues.forEach((issue, index) => {
+      report += `${index + 1}. **[行 ${issue.line}:列 ${issue.column}]** - \`${issue.type}\`\n`;
+      report += `   - **文本**: "${issue.text}"\n`;
+      if (issue.context) {
+        report += `   - **上下文**: \`${issue.context}\`\n`;
+      }
+      report += '\n';
+    });
+
+    report += '---\n\n';
+  });
+
+  return report;
+}
 
 program.name('i18n-xy').description('自动提取React项目中的中文字符串并国际化').version(version);
 
@@ -98,6 +132,70 @@ program
       await translateCommand(options);
     } catch (error) {
       Logger.error(`翻译失败: ${error}`, 'minimal');
+      process.exit(1);
+    }
+  });
+
+program
+  .command('check')
+  .description('检查还有哪些文件存在没有被t函数包裹的中文')
+  .option('-c, --config <path>', '指定配置文件路径', './i18n.config.json')
+  .option('-o, --output <path>', '输出检查结果到文件（默认为report.md）')
+  .action(async (options) => {
+    try {
+      Logger.info(`开始加载配置文件: ${options.config}`, 'verbose');
+      const config = loadConfig(options.config);
+      ConfigManager.init(config);
+
+      // 执行配置验证
+      const validation = ConfigValidator.validateConfigUsage();
+      if (!validation.isValid) {
+        Logger.error('配置验证失败，无法继续执行', 'minimal');
+        process.exit(1);
+      }
+
+      ConfigValidator.checkConfigConsistency();
+      Logger.info('配置加载完成，开始执行检查流程...', 'normal');
+
+      const results = await checkUnwrappedChinese();
+
+      if (results.length === 0) {
+        Logger.success('恭喜！所有文件中的中文字符串都已经国际化', 'minimal');
+        return;
+      }
+
+      // 输出结果
+      if (options.output) {
+        // 生成Markdown格式报告
+        const reportContent = generateMarkdownReport(results);
+        await writeFileWithTempDir(options.output, reportContent);
+        Logger.success(`检查结果已保存到: ${options.output}`, 'minimal');
+      } else {
+        // 控制台输出（简化版本）
+        Logger.info('\n=== 检查结果 ===', 'minimal');
+        Logger.info(`发现 ${results.length} 个文件存在未国际化的中文字符串`, 'minimal');
+
+        let totalIssues = 0;
+        results.forEach((result) => (totalIssues += result.issues.length));
+        Logger.info(`共计 ${totalIssues} 个未包裹的中文字符串`, 'minimal');
+
+        // 显示前几个文件的概览
+        const preview = results.slice(0, 5);
+        Logger.info('\n问题文件预览:', 'minimal');
+        preview.forEach((result) => {
+          Logger.info(`  📄 ${result.file} (${result.issues.length} 个问题)`, 'minimal');
+        });
+
+        if (results.length > 5) {
+          Logger.info(`  ... 还有 ${results.length - 5} 个文件`, 'minimal');
+        }
+
+        Logger.info('\n💡 使用 -o report.md 参数生成详细报告', 'minimal');
+      }
+
+      Logger.success('检查流程已完成', 'minimal');
+    } catch (error) {
+      Logger.error(`检查过程中发生错误: ${error}`, 'minimal');
       process.exit(1);
     }
   });

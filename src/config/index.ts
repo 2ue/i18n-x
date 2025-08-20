@@ -43,7 +43,7 @@ function validateConfig(config: I18nConfig): void {
 
   if (errors.length > 0) {
     Logger.error('配置验证失败:', 'minimal');
-    errors.forEach(error => Logger.error(`  - ${error}`, 'minimal'));
+    errors.forEach((error) => Logger.error(`  - ${error}`, 'minimal'));
     throw new Error(`配置验证失败: ${errors.join('; ')}`);
   }
 }

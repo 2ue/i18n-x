@@ -38,16 +38,16 @@ export async function translateCommand(options: TranslateOptions): Promise<void>
     baidu:
       config.translation.baidu?.appid && config.translation.baidu?.key
         ? {
-          appid: config.translation.baidu.appid,
-          key: config.translation.baidu.key,
-        }
+            appid: config.translation.baidu.appid,
+            key: config.translation.baidu.key,
+          }
         : undefined,
     custom:
       config.translation.custom?.endpoint && config.translation.custom?.apiKey
         ? {
-          endpoint: config.translation.custom.endpoint,
-          apiKey: config.translation.custom.apiKey,
-        }
+            endpoint: config.translation.custom.endpoint,
+            apiKey: config.translation.custom.apiKey,
+          }
         : undefined,
   });
 

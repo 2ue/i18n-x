@@ -188,6 +188,225 @@ function handleStringLiteral(
   return false;
 }
 
+/**
+ * 检查结果接口
+ */
+export interface CheckResult {
+  file: string;
+  issues: Array<{
+    line: number;
+    column: number;
+    text: string;
+    type: 'string' | 'template' | 'jsx-text' | 'jsx-attribute';
+    context?: string;
+  }>;
+}
+
+/**
+ * 检查文件中未国际化的中文字符串
+ */
+export async function checkUnwrappedChinese(): Promise<CheckResult[]> {
+  const config = ConfigManager.get();
+  const functionName = config.replacement?.functionName ?? '$t';
+
+  Logger.info('开始检查未国际化的中文字符串...', 'normal');
+  Logger.verbose(`配置信息: 
+    - include: ${JSON.stringify(config.include)}
+    - exclude: ${JSON.stringify(config.exclude)}
+    - functionName: ${functionName}`);
+
+  Logger.info('搜索目标文件...', 'verbose');
+  const files = await findTargetFiles(config.include, config.exclude);
+
+  if (files.length === 0) {
+    Logger.warn('没有找到匹配的文件', 'normal');
+    return [];
+  }
+
+  Logger.info(`找到 ${files.length} 个文件需要检查`, 'normal');
+
+  const results: CheckResult[] = [];
+  let processedCount = 0;
+  let totalIssues = 0;
+
+  for (const file of files) {
+    processedCount++;
+    Logger.info(`[${processedCount}/${files.length}] 检查文件: ${file}`, 'verbose');
+
+    const code = await readFile(file, 'utf-8');
+    const fileResult: CheckResult = { file, issues: [] };
+
+    let ast;
+    try {
+      ast = parse(code, {
+        sourceType: 'unambiguous',
+        plugins: ['jsx', 'typescript', 'classProperties', 'decorators-legacy', 'dynamicImport'],
+      });
+    } catch (error) {
+      Logger.warn(`解析文件失败: ${file}`, 'minimal');
+      Logger.verbose(`错误详情: ${error}`);
+      continue;
+    }
+
+    // 获取代码行信息用于定位
+    const codeLines = code.split('\n');
+
+    traverse(ast, {
+      // 检查字符串字面量
+      StringLiteral(path: any) {
+        if (isInTypePosition(path)) return;
+
+        const parentPath = path.parentPath;
+        if (parentPath && isI18nFunctionCall(parentPath, functionName)) return;
+
+        const stringValue = path.node.value;
+        if (stringValue && typeof stringValue === 'string' && containsChinese(stringValue)) {
+          const loc = path.node.loc;
+          if (loc) {
+            fileResult.issues.push({
+              line: loc.start.line,
+              column: loc.start.column,
+              text: stringValue,
+              type: 'string',
+              context: getContextInfo(path, codeLines),
+            });
+          }
+        }
+      },
+
+      // 检查模板字符串
+      TemplateLiteral(path: any) {
+        if (isInTypePosition(path)) return;
+
+        const parentPath = path.parentPath;
+        if (parentPath && isI18nFunctionCall(parentPath, functionName)) return;
+
+        // 检查模板字符串的静态部分
+        path.node.quasis.forEach((quasi: any) => {
+          const raw = quasi.value?.raw;
+          if (raw && typeof raw === 'string' && containsChinese(raw)) {
+            const loc = path.node.loc;
+            if (loc) {
+              fileResult.issues.push({
+                line: loc.start.line,
+                column: loc.start.column,
+                text: raw,
+                type: 'template',
+                context: getContextInfo(path, codeLines),
+              });
+            }
+          }
+        });
+
+        // 检查模板字符串的表达式部分
+        path.node.expressions.forEach((expr: any) => {
+          if (t.isStringLiteral(expr) && containsChinese(expr.value)) {
+            const loc = expr.loc;
+            if (loc) {
+              fileResult.issues.push({
+                line: loc.start.line,
+                column: loc.start.column,
+                text: expr.value,
+                type: 'template',
+                context: getContextInfo(path, codeLines),
+              });
+            }
+          }
+        });
+      },
+
+      // 检查JSX文本
+      JSXText(path: any) {
+        const textValue = path.node.value;
+        if (textValue && typeof textValue === 'string' && containsChinese(textValue)) {
+          const parentPath = path.parentPath;
+          if (
+            parentPath?.isJSXExpressionContainer() &&
+            parentPath.node.expression &&
+            isI18nFunctionCall({ node: parentPath.node.expression }, functionName)
+          ) {
+            return;
+          }
+
+          const trimmedValue = textValue.trim();
+          if (trimmedValue) {
+            const loc = path.node.loc;
+            if (loc) {
+              fileResult.issues.push({
+                line: loc.start.line,
+                column: loc.start.column,
+                text: trimmedValue,
+                type: 'jsx-text',
+                context: getContextInfo(path, codeLines),
+              });
+            }
+          }
+        }
+      },
+
+      // 检查JSX属性
+      JSXAttribute(path: any) {
+        if (
+          t.isStringLiteral(path.node.value) &&
+          path.node.value.value &&
+          typeof path.node.value.value === 'string' &&
+          containsChinese(path.node.value.value)
+        ) {
+          if (
+            t.isJSXExpressionContainer(path.node.value) &&
+            path.node.value.expression &&
+            isI18nFunctionCall({ node: path.node.value.expression }, functionName)
+          ) {
+            return;
+          }
+
+          const attributeValue = path.node.value.value;
+          const loc = path.node.loc;
+          if (loc) {
+            fileResult.issues.push({
+              line: loc.start.line,
+              column: loc.start.column,
+              text: attributeValue,
+              type: 'jsx-attribute',
+              context: getContextInfo(path, codeLines),
+            });
+          }
+        }
+      },
+    });
+
+    if (fileResult.issues.length > 0) {
+      results.push(fileResult);
+      totalIssues += fileResult.issues.length;
+      Logger.info(`文件 ${file} 发现 ${fileResult.issues.length} 个未国际化的中文字符串`, 'normal');
+    } else {
+      Logger.verbose(`文件 ${file} 无未国际化的中文字符串`);
+    }
+  }
+
+  Logger.success(`检查完成！`, 'minimal');
+  Logger.info(`统计信息:`, 'normal');
+  Logger.info(`  - 检查文件总数: ${processedCount}`, 'normal');
+  Logger.info(`  - 有问题的文件数: ${results.length}`, 'normal');
+  Logger.info(`  - 未国际化字符串总数: ${totalIssues}`, 'normal');
+
+  return results;
+}
+
+/**
+ * 获取上下文信息
+ */
+function getContextInfo(path: any, codeLines: string[]): string {
+  const loc = path.node.loc;
+  if (!loc || !codeLines) return '';
+
+  const lineIndex = loc.start.line - 1;
+  if (lineIndex >= 0 && lineIndex < codeLines.length) {
+    return codeLines[lineIndex]?.trim() ?? '';
+  }
+  return '';
+}
+
 export async function scanAndReplaceAll(): Promise<void> {
   const config = ConfigManager.get();
 
