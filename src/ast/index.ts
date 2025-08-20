@@ -50,14 +50,12 @@ function isInTypePosition(path: any): boolean {
     if (
       t.isTSTypeAnnotation(parent) || // : string
       t.isTSLiteralType(parent) || // type T = "literal"
-      t.isTSUnionType(parent) || // "a" | "b"
       t.isTSIntersectionType(parent) || // A & B
       t.isTSTypeReference(parent) || // SomeType<T>
       t.isTSTypeLiteral(parent) || // { key: "value" }
       t.isTSInterfaceDeclaration(parent) || // interface I {}
       t.isTSTypeAliasDeclaration(parent) || // type T = ...
       t.isTSEnumDeclaration(parent) || // enum E {}
-      t.isTSEnumMember(parent) || // A = "value"  -- 但需要特殊处理枚举成员的值
       t.isTSPropertySignature(parent) || // { prop: "type" }
       t.isTSMethodSignature(parent) || // { method(): "return" }
       t.isTSCallSignatureDeclaration(parent) || // { (): "return" }
@@ -70,10 +68,40 @@ function isInTypePosition(path: any): boolean {
       t.isTSTypeParameterDeclaration(parent) // <T = "default">
     ) {
       // 特殊处理: 枚举成员值需要进行替换，但枚举成员名称不需要
-      if (t.isTSEnumMember(parent) && parent.initializer === current.node) {
+      if (t.isTSEnumMember(parent) && (parent as any).initializer === current.node) {
         return false; // 枚举成员的值需要替换，所以不在类型位置
       }
       return true;
+    }
+
+    // 增强的联合类型检测
+    if (t.isTSUnionType(parent)) {
+      // 检查当前节点是否是联合类型的成员
+      if (parent.types && parent.types.includes(current.node)) {
+        return true;
+      }
+      // 检查是否在联合类型的字面量类型中
+      if (t.isTSLiteralType(current.parent) && parent.types.includes(current.parent)) {
+        return true;
+      }
+    }
+
+    // 检查是否在接口属性的类型注解中
+    if (t.isTSPropertySignature(parent)) {
+      if (parent.typeAnnotation && parent.typeAnnotation.typeAnnotation === current.node) {
+        return true;
+      }
+      // 检查接口属性的类型注解内部
+      if (t.isTSTypeAnnotation(current.parent) && parent.typeAnnotation === current.parent) {
+        return true;
+      }
+    }
+
+    // 检查是否在类型别名定义中
+    if (t.isTSTypeAliasDeclaration(parent)) {
+      if (parent.typeAnnotation === current.node) {
+        return true;
+      }
     }
 
     // 检查是否在泛型参数中
@@ -91,8 +119,46 @@ function isInTypePosition(path: any): boolean {
       return true;
     }
 
+    // 增强的函数参数类型检测
+    if (
+      t.isFunctionDeclaration(parent) ||
+      t.isFunctionExpression(parent) ||
+      t.isArrowFunctionExpression(parent)
+    ) {
+      // 检查是否在函数参数的类型注解中
+      if (parent.params) {
+        for (const param of parent.params) {
+          if (t.isIdentifier(param) && param.typeAnnotation) {
+            const typeNode = (param.typeAnnotation as any).typeAnnotation;
+            if (isNodeInTypeAnnotation(current.node, typeNode)) {
+              return true;
+            }
+          }
+        }
+      }
+    }
+
     // 向上遍历
     current = parentPath;
+  }
+
+  return false;
+}
+
+/**
+ * 辅助函数：检查节点是否在类型注解内部
+ */
+function isNodeInTypeAnnotation(targetNode: any, typeAnnotation: any): boolean {
+  if (!typeAnnotation) return false;
+
+  if (typeAnnotation === targetNode) return true;
+
+  if (t.isTSUnionType(typeAnnotation)) {
+    return typeAnnotation.types.some((type: any) => isNodeInTypeAnnotation(targetNode, type));
+  }
+
+  if (t.isTSLiteralType(typeAnnotation)) {
+    return typeAnnotation.literal === targetNode;
   }
 
   return false;
@@ -439,11 +505,22 @@ export async function scanAndReplaceAll(): Promise<void> {
   const insertPosition = config.replacement?.autoImport?.insertPosition ?? 'afterImports';
   const imports = config.replacement?.autoImport?.imports ?? {};
 
+  // 获取模板字符串配置
+  const templateConfig = config.replacement?.templateString ?? {
+    enabled: true,
+    minChineseLength: 2,
+    preserveExpressions: true,
+    splitStrategy: 'smart',
+  };
+
   Logger.verbose(`替换配置:
     - 函数名: ${functionName}
     - 引号类型: ${quoteType}
     - 自动导入: ${autoImportEnabled ? '启用' : '禁用'}
-    - 插入位置: ${insertPosition}`);
+    - 插入位置: ${insertPosition}
+    - 模板字符串处理: ${templateConfig.enabled ? '启用' : '禁用'}
+    - 最小中文长度: ${templateConfig.minChineseLength}
+    - 拆分策略: ${templateConfig.splitStrategy}`);
 
   // 统计变量
   let processedCount = 0;
@@ -493,6 +570,11 @@ export async function scanAndReplaceAll(): Promise<void> {
 
       // 处理模板字符串元素
       TemplateElement(path: any) {
+        // 检查是否启用模板字符串处理
+        if (!templateConfig.enabled) {
+          return;
+        }
+
         // 跳过类型定义位置的模板字符串
         if (isInTypePosition(path)) {
           return;
@@ -507,33 +589,56 @@ export async function scanAndReplaceAll(): Promise<void> {
 
         const raw = path.node.value?.raw;
         if (raw && typeof raw === 'string' && containsChinese(raw)) {
-          // 替换所有中文片段为${$t('key')}，保留非中文和插值
-          const SEPARATOR = '\u{1F4D6}'; // 使用书本emoji作为分隔符，避免控制字符问题
-          const replaced = raw.replace(
-            /[\u4e00-\u9fa5]+/g,
-            (match: string) => `${SEPARATOR}${match}${SEPARATOR}`
-          );
-          const parts = replaced
-            .split(new RegExp(`${SEPARATOR}([\\u4e00-\\u9fa5]+)${SEPARATOR}`, 'g'))
-            .filter(Boolean);
-          let result = '';
-
-          // 根据配置选择引号类型
-          const quoteChar = quoteType === 'single' ? "'" : '"';
-
-          for (const part of parts) {
-            if (/^[\u4e00-\u9fa5]+$/.test(part)) {
-              const key = createI18nKey(part);
-              result += '${' + functionName + '(' + quoteChar + key + quoteChar + ')}';
+          // 检查中文片段长度是否满足最小要求
+          const chineseMatches = raw.match(/[\u4e00-\u9fa5]+/g);
+          const minLength = templateConfig.minChineseLength ?? 2;
+          if (chineseMatches && chineseMatches.some((match) => match.length >= minLength)) {
+            // 应用不同的拆分策略
+            if (templateConfig.splitStrategy === 'conservative') {
+              // 保守策略：只替换独立的中文片段
+              const result = raw.replace(/[\u4e00-\u9fa5]+/g, (match: string) => {
+                if (match.length >= minLength) {
+                  const key = createI18nKey(match);
+                  const quoteChar = quoteType === 'single' ? "'" : '"';
+                  return '${' + functionName + '(' + quoteChar + key + quoteChar + ')}';
+                }
+                return match;
+              });
+              path.node.value.raw = result;
+              path.node.value.cooked = result;
+              hasReplacement = true;
+              fileReplacements++;
+              Logger.verbose(`保守策略替换模板字符串中的中文片段`);
             } else {
-              result += part;
+              // 智能策略或激进策略：使用原有逻辑
+              const SEPARATOR = '\u{1F4D6}'; // 使用书本emoji作为分隔符，避免控制字符问题
+              const replaced = raw.replace(
+                /[\u4e00-\u9fa5]+/g,
+                (match: string) => `${SEPARATOR}${match}${SEPARATOR}`
+              );
+              const parts = replaced
+                .split(new RegExp(`${SEPARATOR}([\\u4e00-\\u9fa5]+)${SEPARATOR}`, 'g'))
+                .filter(Boolean);
+              let result = '';
+
+              // 根据配置选择引号类型
+              const quoteChar = quoteType === 'single' ? "'" : '"';
+
+              for (const part of parts) {
+                if (/^[\u4e00-\u9fa5]+$/.test(part) && part.length >= minLength) {
+                  const key = createI18nKey(part);
+                  result += '${' + functionName + '(' + quoteChar + key + quoteChar + ')}';
+                } else {
+                  result += part;
+                }
+              }
+              path.node.value.raw = result;
+              path.node.value.cooked = result;
+              hasReplacement = true;
+              fileReplacements++;
+              Logger.verbose(`${templateConfig.splitStrategy}策略替换模板字符串中的中文片段`);
             }
           }
-          path.node.value.raw = result;
-          path.node.value.cooked = result;
-          hasReplacement = true;
-          fileReplacements++;
-          Logger.verbose(`替换模板字符串中的中文片段`);
         }
       },
 
@@ -546,225 +651,62 @@ export async function scanAndReplaceAll(): Promise<void> {
           return;
         }
 
-        // 特殊处理像 `计数器：${count}次` 这样的模板字符串
-        if (
-          path.node.expressions &&
-          path.node.expressions.length === 1 &&
-          path.node.quasis &&
-          path.node.quasis.length === 2
-        ) {
-          const firstQuasi = path.node.quasis[0];
-          const secondQuasi = path.node.quasis[1];
-          const expr = path.node.expressions[0];
-
-          // 确保所有需要的元素都存在，并且 expr 是表达式类型
-          if (
-            firstQuasi?.value &&
-            firstQuasi.value.raw !== undefined &&
-            secondQuasi?.value &&
-            secondQuasi.value.raw !== undefined &&
-            expr &&
-            t.isExpression(expr)
-          ) {
-            // 特殊处理字符串字面量表达式，如 `标题：${'中文标题'}`
-            if (t.isStringLiteral(expr) && containsChinese(expr.value)) {
-              const exprValue = expr.value;
-              const exprKey = createI18nKey(exprValue);
-              const exprCallExpression = createI18nCallExpression(functionName, exprKey, quoteType);
-
-              // 检查第一个 quasi 是否包含中文
-              if (containsChinese(firstQuasi.value.raw) && firstQuasi.value.raw.trim() !== '') {
-                const firstKey = createI18nKey(firstQuasi.value.raw);
-                const firstCallExpression = createI18nCallExpression(
-                  functionName,
-                  firstKey,
-                  quoteType
-                );
-
-                // 如果第二个 quasi 也包含中文
-                if (containsChinese(secondQuasi.value.raw) && secondQuasi.value.raw.trim() !== '') {
-                  const secondKey = createI18nKey(secondQuasi.value.raw);
-                  const secondCallExpression = createI18nCallExpression(
-                    functionName,
-                    secondKey,
-                    quoteType
-                  );
-
-                  // 创建一个表达式拼接：$t('key1') + $t('exprKey') + $t('key2')
-                  const result1 = t.binaryExpression('+', firstCallExpression, exprCallExpression);
-                  const result = t.binaryExpression('+', result1, secondCallExpression);
-
-                  path.replaceWith(result);
-                  hasReplacement = true;
-                  fileReplacements++;
-                  Logger.verbose(
-                    `替换模板字符串中的中文字符串和前后缀: \`${firstQuasi.value.raw}\${${exprValue}}${secondQuasi.value.raw}\``
-                  );
-                } else {
-                  // 创建一个表达式拼接：$t('key1') + $t('exprKey')
-                  const result = t.binaryExpression('+', firstCallExpression, exprCallExpression);
-
-                  path.replaceWith(result);
-                  hasReplacement = true;
-                  fileReplacements++;
-                  Logger.verbose(
-                    `替换模板字符串中的中文字符串和前缀: \`${firstQuasi.value.raw}\${${exprValue}}\``
-                  );
-                }
-              }
-              // 检查第二个 quasi 是否包含中文，第一个 quasi 是否为空或不包含中文
-              else if (
-                containsChinese(secondQuasi.value.raw) &&
-                secondQuasi.value.raw.trim() !== ''
-              ) {
-                const secondKey = createI18nKey(secondQuasi.value.raw);
-                const secondCallExpression = createI18nCallExpression(
-                  functionName,
-                  secondKey,
-                  quoteType
-                );
-
-                // 创建一个表达式拼接：$t('exprKey') + $t('key2')
-                const result = t.binaryExpression('+', exprCallExpression, secondCallExpression);
-
-                path.replaceWith(result);
-                hasReplacement = true;
-                fileReplacements++;
-                Logger.verbose(
-                  `替换模板字符串中的中文字符串和后缀: \`\${${exprValue}}${secondQuasi.value.raw}\``
-                );
-              } else {
-                // 如果前后缀都不包含中文，只替换表达式部分
-                path.replaceWith(exprCallExpression);
-                hasReplacement = true;
-                fileReplacements++;
-                Logger.verbose(`替换模板字符串中的中文字符串: \`\${${exprValue}}\``);
-              }
-
-              // 已经处理过了，不需要继续下面的处理
-              return;
-            }
-
-            // 检查第一个 quasi 是否包含中文，第二个 quasi 是否为空或不包含中文
-            if (containsChinese(firstQuasi.value.raw) && firstQuasi.value.raw.trim() !== '') {
-              const chineseText = firstQuasi.value.raw;
-              const key = createI18nKey(chineseText);
-
-              // 如果第二个 quasi 也包含中文，则需要分别处理
-              if (containsChinese(secondQuasi.value.raw) && secondQuasi.value.raw.trim() !== '') {
-                const secondKey = createI18nKey(secondQuasi.value.raw);
-
-                // 创建一个表达式拼接：$t('key1') + expr + $t('key2')
-                const callExpression1 = createI18nCallExpression(functionName, key, quoteType);
-                const callExpression2 = createI18nCallExpression(
-                  functionName,
-                  secondKey,
-                  quoteType
-                );
-                const result1 = t.binaryExpression('+', callExpression1, expr);
-                const result = t.binaryExpression('+', result1, callExpression2);
-
-                path.replaceWith(result);
-                hasReplacement = true;
-                fileReplacements++;
-                Logger.verbose(
-                  `替换模板字符串中的前后缀中文: \`${chineseText}\${expr}${secondQuasi.value.raw}\` -> ${functionName}(${quoteType === 'single' ? "'" : '"'}${key}${quoteType === 'single' ? "'" : '"'}) + expr + ${functionName}(${quoteType === 'single' ? "'" : '"'}${secondKey}${quoteType === 'single' ? "'" : '"'})`
-                );
-              } else {
-                // 创建一个表达式拼接：$t('key') + expr
-                const callExpression = createI18nCallExpression(functionName, key, quoteType);
-                const result = t.binaryExpression('+', callExpression, expr);
-
-                path.replaceWith(result);
-                hasReplacement = true;
-                fileReplacements++;
-                Logger.verbose(
-                  `替换模板字符串中的前缀中文: \`${chineseText}\${expr}\` -> ${functionName}(${quoteType === 'single' ? "'" : '"'}${key}${quoteType === 'single' ? "'" : '"'}) + expr`
-                );
-              }
-            }
-            // 检查第二个 quasi 是否包含中文，第一个 quasi 是否为空或不包含中文
-            else if (
-              containsChinese(secondQuasi.value.raw) &&
-              secondQuasi.value.raw.trim() !== ''
-            ) {
-              const chineseText = secondQuasi.value.raw;
-              const key = createI18nKey(chineseText);
-
-              // 创建一个表达式拼接：expr + $t('key')
-              const callExpression = createI18nCallExpression(functionName, key, quoteType);
-              const result = t.binaryExpression('+', expr, callExpression);
-
-              path.replaceWith(result);
-              hasReplacement = true;
-              fileReplacements++;
-              Logger.verbose(
-                `替换模板字符串中的后缀中文: \`\${expr}${chineseText}\` -> expr + ${functionName}(${quoteType === 'single' ? "'" : '"'}${key}${quoteType === 'single' ? "'" : '"'})`
-              );
-            }
-          }
+        // 跳过类型定义位置的模板字符串
+        if (isInTypePosition(path)) {
+          return;
         }
 
-        // 检查表达式部分是否包含需要替换的字符串字面量
+        // 检查是否启用模板字符串处理
+        if (!templateConfig.enabled) {
+          return;
+        }
+
+        // 处理模板字符串：保持模板字符串格式，只替换其中的中文部分
+        let hasModified = false;
+
+        // 处理 quasis（模板字符串的静态部分）
+        path.node.quasis.forEach((quasi: any) => {
+          if (quasi?.value?.raw && containsChinese(quasi.value.raw)) {
+            const raw = quasi.value.raw;
+            // 检查中文片段长度是否满足最小要求
+            const chineseMatches = raw.match(/[\u4e00-\u9fa5]+/g);
+            const minLength = templateConfig.minChineseLength ?? 2;
+
+            if (chineseMatches?.some((match: string) => match.length >= minLength)) {
+              // 在模板字符串内部替换中文为 ${$t('key')} 格式
+              const newRaw = raw.replace(/[\u4e00-\u9fa5]+/g, (match: string) => {
+                if (match.length >= minLength) {
+                  const key = createI18nKey(match);
+                  const quoteChar = quoteType === 'single' ? "'" : '"';
+                  return '${' + functionName + '(' + quoteChar + key + quoteChar + ')}';
+                }
+                return match;
+              });
+
+              if (newRaw !== raw) {
+                quasi.value.raw = newRaw;
+                quasi.value.cooked = newRaw;
+                hasModified = true;
+              }
+            }
+          }
+        });
+
+        // 处理表达式中的中文字符串
         if (path.node.expressions) {
           path.node.expressions.forEach((expr: any, index: number) => {
-            if (expr && t.isStringLiteral(expr) && containsChinese(expr.value)) {
+            if (t.isStringLiteral(expr) && containsChinese(expr.value)) {
               const stringValue = expr.value;
               const key = createI18nKey(stringValue);
-
-              // 替换模板字符串表达式中的字符串
               const callExpression = createI18nCallExpression(functionName, key, quoteType);
               path.node.expressions[index] = callExpression;
-
-              hasReplacement = true;
-              fileReplacements++;
-              Logger.verbose(
-                `替换模板字符串表达式中的字符串: "${stringValue}" -> ${functionName}(${quoteType === 'single' ? "'" : '"'}${key}${quoteType === 'single' ? "'" : '"'})`
-              );
-            } else if (expr && t.isTemplateLiteral(expr)) {
-              // 处理嵌套的模板字符串
-              if (expr.expressions) {
-                expr.expressions.forEach((nestedExpr: any, nestedIndex: number) => {
-                  if (
-                    nestedExpr &&
-                    t.isStringLiteral(nestedExpr) &&
-                    containsChinese(nestedExpr.value)
-                  ) {
-                    const stringValue = nestedExpr.value;
-                    const key = createI18nKey(stringValue);
-
-                    // 替换嵌套模板字符串中的表达式
-                    const callExpression = createI18nCallExpression(functionName, key, quoteType);
-                    expr.expressions[nestedIndex] = callExpression;
-
-                    hasReplacement = true;
-                    fileReplacements++;
-                    Logger.verbose(
-                      `替换嵌套模板字符串表达式中的字符串: "${stringValue}" -> ${functionName}(${quoteType === 'single' ? "'" : '"'}${key}${quoteType === 'single' ? "'" : '"'})`
-                    );
-                  }
-                });
-              }
-
-              // 处理嵌套模板字符串的 quasis 部分
-              if (expr.quasis) {
-                expr.quasis.forEach((quasi: any) => {
-                  if (
-                    quasi?.value &&
-                    quasi.value.raw !== undefined &&
-                    containsChinese(quasi.value.raw) &&
-                    quasi.value.raw.trim() !== ''
-                  ) {
-                    // 这里我们不直接替换，而是在外层处理
-                    Logger.verbose(`检测到嵌套模板字符串中的中文，将在外层处理`);
-                  }
-                });
-              }
+              hasModified = true;
+              Logger.verbose(`替换模板字符串表达式中的字符串: "${stringValue}" -> ${functionName}('${key}')`);
             }
           });
         }
 
-        // 对于完整的模板字符串，可能需要直接替换整个模板字符串
+        // 处理只有一个静态部分的模板字符串（没有表达式）
         if (
           path.node.expressions &&
           path.node.expressions.length === 0 &&
@@ -774,7 +716,8 @@ export async function scanAndReplaceAll(): Promise<void> {
           const firstQuasi = path.node.quasis[0];
           if (firstQuasi?.value && firstQuasi.value.raw !== undefined) {
             const templateValue = firstQuasi.value.raw;
-            if (containsChinese(templateValue) && !isInTypePosition(path)) {
+            if (containsChinese(templateValue)) {
+              // 对于纯静态的模板字符串，直接替换为普通函数调用
               const key = createI18nKey(templateValue);
               const callExpression = createI18nCallExpression(functionName, key, quoteType);
               path.replaceWith(callExpression);
@@ -783,73 +726,15 @@ export async function scanAndReplaceAll(): Promise<void> {
               Logger.verbose(
                 `替换完整模板字符串: \`${templateValue}\` -> ${functionName}(${quoteType === 'single' ? "'" : '"'}${key}${quoteType === 'single' ? "'" : '"'})`
               );
+              return;
             }
           }
         }
 
-        // 处理模板字符串中的中文部分，即使有表达式也能处理
-        if (path.node.quasis && path.node.quasis.length > 0) {
-          let hasChinesePart = false;
-
-          // 检查是否有中文部分
-          for (const quasi of path.node.quasis) {
-            if (quasi?.value && quasi.value.raw !== undefined && containsChinese(quasi.value.raw)) {
-              hasChinesePart = true;
-              break;
-            }
-          }
-
-          // 如果有中文部分，需要将模板字符串转换为多个表达式的拼接
-          if (hasChinesePart && !isInTypePosition(path)) {
-            // 创建一个数组来存储转换后的表达式部分
-            const parts = [];
-
-            // 处理每个模板部分
-            for (let i = 0; i < path.node.quasis.length; i++) {
-              const quasi = path.node.quasis[i];
-              if (quasi?.value && quasi.value.raw !== undefined) {
-                const raw = quasi.value.raw;
-
-                // 如果这部分包含中文，则替换
-                if (containsChinese(raw) && raw.trim() !== '') {
-                  const key = createI18nKey(raw);
-                  const callExpression = createI18nCallExpression(functionName, key, quoteType);
-                  parts.push(callExpression);
-                } else if (raw.trim() !== '') {
-                  // 否则保留原始字符串
-                  parts.push(t.stringLiteral(raw));
-                }
-              }
-
-              // 添加表达式部分（如果有）
-              if (path.node.expressions && i < path.node.expressions.length) {
-                const expr = path.node.expressions[i];
-                if (expr) {
-                  // 特殊处理字符串字面量表达式
-                  if (t.isStringLiteral(expr) && containsChinese(expr.value)) {
-                    const key = createI18nKey(expr.value);
-                    const callExpression = createI18nCallExpression(functionName, key, quoteType);
-                    parts.push(callExpression);
-                  } else {
-                    parts.push(expr);
-                  }
-                }
-              }
-            }
-
-            // 创建一个二元表达式来连接所有部分
-            if (parts.length > 0) {
-              let result = parts[0];
-              for (let i = 1; i < parts.length; i++) {
-                result = t.binaryExpression('+', result, parts[i]);
-              }
-
-              path.replaceWith(result);
-              hasReplacement = true;
-              fileReplacements++;
-              Logger.verbose(`替换包含中文的模板字符串为表达式拼接`);
-            }
-          }
+        if (hasModified) {
+          hasReplacement = true;
+          fileReplacements++;
+          Logger.verbose(`保持模板字符串格式，只替换中文片段`);
         }
       },
 
@@ -1558,6 +1443,47 @@ export async function scanAndReplaceAll(): Promise<void> {
         }
       },
 
+      // 处理二元表达式（比较、逻辑运算等）
+      BinaryExpression(path: any) {
+        // 处理左侧操作数
+        if (t.isStringLiteral(path.node.left) && containsChinese(path.node.left.value)) {
+          // 检查是否已经是国际化函数调用
+          if (!isI18nFunctionCall({ node: path.node.left }, functionName)) {
+            const stringValue = path.node.left.value;
+            const key = createI18nKey(stringValue);
+
+            // 替换二元表达式左侧的字符串
+            const callExpression = createI18nCallExpression(functionName, key, quoteType);
+            path.node.left = callExpression;
+
+            hasReplacement = true;
+            fileReplacements++;
+            Logger.verbose(
+              `替换二元表达式左侧的字符串: "${stringValue}" -> ${functionName}(${quoteType === 'single' ? "'" : '"'}${key}${quoteType === 'single' ? "'" : '"'})`
+            );
+          }
+        }
+
+        // 处理右侧操作数
+        if (t.isStringLiteral(path.node.right) && containsChinese(path.node.right.value)) {
+          // 检查是否已经是国际化函数调用
+          if (!isI18nFunctionCall({ node: path.node.right }, functionName)) {
+            const stringValue = path.node.right.value;
+            const key = createI18nKey(stringValue);
+
+            // 替换二元表达式右侧的字符串
+            const callExpression = createI18nCallExpression(functionName, key, quoteType);
+            path.node.right = callExpression;
+
+            hasReplacement = true;
+            fileReplacements++;
+            Logger.verbose(
+              `替换二元表达式右侧的字符串: "${stringValue}" -> ${functionName}(${quoteType === 'single' ? "'" : '"'}${key}${quoteType === 'single' ? "'" : '"'})`
+            );
+          }
+        }
+      },
+
       // 处理 switch/case 语句中的字符串
       SwitchCase(path: any) {
         // 处理 case '中文': 这种情况
@@ -2067,12 +1993,19 @@ export async function scanAndReplaceAll(): Promise<void> {
 
     // 只有在发生替换时才输出文件
     if (hasReplacement) {
-      // 生成代码时考虑引号配置
+      // 生成代码时考虑引号配置和格式保持
       const generateOptions = {
-        retainLines: true,
+        // 取消 retainLines，因为它会导致格式问题
+        compact: false, // 确保代码不会被压缩
+        comments: true, // 保留注释
+        minified: false, // 不压缩代码
         // 设置引号类型
         jsescOption: {
           quotes: quoteType,
+        },
+        // 添加缩进配置
+        indent: {
+          style: '  ', // 使用2个空格缩进
         },
       };
 
@@ -2080,6 +2013,13 @@ export async function scanAndReplaceAll(): Promise<void> {
 
       // 使用import管理器添加空行
       output = importManager.addEmptyLineToOutput(output);
+
+      // 格式化输出代码以改善可读性
+      output = output
+        .replace(/;\s*\n\s*\n/g, ';\n\n') // 确保语句后有适当的空行
+        .replace(/\{\s*\n\s*\n/g, '{\n') // 去除多余的空行
+        .replace(/\n\s*\n\s*\}/g, '\n}') // 去除闭合括号前的多余空行
+        .replace(/\n{3,}/g, '\n\n'); // 限制连续空行不超过2行
 
       await writeFileWithTempDir(file, output, config.tempDir);
       modifiedCount++;

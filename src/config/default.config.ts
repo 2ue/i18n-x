@@ -56,6 +56,12 @@ export const defaultConfig: I18nConfig = {
     functionName: '$t', // 默认替换函数名
     quoteType: 'single', // 默认使用单引号
     useOriginalTextAsKey: false, // 默认使用生成的key
+    templateString: {
+      enabled: true, // 默认启用模板字符串智能处理
+      minChineseLength: 2, // 中文片段最小长度
+      preserveExpressions: true, // 默认保留原始表达式
+      splitStrategy: 'smart', // 默认智能拆分策略
+    },
     autoImport: {
       enabled: false, // 默认不启用自动引入
       insertPosition: 'afterImports', // 默认在import语句后插入
