@@ -14,10 +14,76 @@ const generate = require('@babel/generator').default;
 const CHINESE_RE = /[\u4e00-\u9fa5]/;
 
 /**
- * 检查节点是否在不应该替换的位置
- * 包括：TypeScript 类型位置、对象属性键、import/export 语句等
+ * 上下文类型定义
  */
-function isInTypePosition(path: any): boolean {
+export type ContextType = 'code' | 'comment' | 'ts-definition' | 'object-key' | 'enum-value' | 'import-export' | 'type-annotation';
+
+/**
+ * 上下文分析结果
+ */
+export interface ContextAnalysis {
+  shouldProcess: boolean;
+  contextType: ContextType;
+  reason?: string;
+}
+
+/**
+ * 检查节点是否在注释中
+ */
+function isInComment(path: any, codeLines: string[]): boolean {
+  const loc = path.node.loc;
+  if (!loc || !codeLines) return false;
+
+  const lineIndex = loc.start.line - 1;
+  if (lineIndex >= 0 && lineIndex < codeLines.length) {
+    const line = codeLines[lineIndex];
+    const beforeText = line.substring(0, loc.start.column);
+    const afterText = line.substring(loc.end.column);
+    
+    // 检查单行注释 //
+    if (beforeText.includes('//')) {
+      return true;
+    }
+    
+    // 检查多行注释 /* */
+    if (beforeText.includes('/*') && !beforeText.includes('*/')) {
+      return true;
+    }
+    
+    // 检查是否在多行注释中间
+    for (let i = lineIndex - 1; i >= 0; i--) {
+      const prevLine = codeLines[i];
+      if (prevLine.includes('*/')) {
+        break; // 找到注释结束，不在注释中
+      }
+      if (prevLine.includes('/*')) {
+        return true; // 找到注释开始，在注释中
+      }
+    }
+    
+    // 检查JSDoc注释 /** */
+    if (beforeText.includes('/**') || beforeText.includes('*')) {
+      return true;
+    }
+  }
+  
+  return false;
+}
+
+/**
+ * 检查节点是否在不应该替换的位置并返回详细的上下文信息
+ * 包括：TypeScript 类型位置、对象属性键、import/export 语句、注释等
+ */
+function analyzeContext(path: any, codeLines?: string[]): ContextAnalysis {
+  // 首先检查是否在注释中
+  if (codeLines && isInComment(path, codeLines)) {
+    return {
+      shouldProcess: false,
+      contextType: 'comment',
+      reason: '注释中的文本'
+    };
+  }
+
   let current = path;
 
   while (current) {
@@ -28,22 +94,41 @@ function isInTypePosition(path: any): boolean {
 
     // 检查是否是对象属性的键
     if (t.isObjectProperty(parent) && parent.key === current.node) {
-      return true;
+      return {
+        shouldProcess: false,
+        contextType: 'object-key',
+        reason: '对象属性键名'
+      };
     }
 
     // 检查是否是对象方法的键
     if (t.isObjectMethod(parent) && parent.key === current.node) {
-      return true;
+      return {
+        shouldProcess: false,
+        contextType: 'object-key',
+        reason: '对象方法名'
+      };
     }
 
     // 检查是否在 import/export 语句中
+    // 注意：只检查直接的import/export声明，不包括export function内部的内容
     if (
       t.isImportDeclaration(parent) ||
-      t.isExportDeclaration(parent) ||
       t.isImportSpecifier(parent) ||
-      t.isExportSpecifier(parent)
+      t.isExportSpecifier(parent) ||
+      // 只有当字符串直接在export声明中时才忽略（如 export { "key" as alias }）
+      // 而不是在export function/class内部
+      (t.isExportDeclaration(parent) && (
+        t.isExportAllDeclaration(parent) ||
+        t.isExportDefaultDeclaration(parent) && current.node === parent.declaration ||
+        t.isExportNamedDeclaration(parent) && parent.specifiers?.some(spec => spec === current.node)
+      ))
     ) {
-      return true;
+      return {
+        shouldProcess: false,
+        contextType: 'import-export',
+        reason: 'import/export语句'
+      };
     }
 
     // 检查各种 TypeScript 类型上下文
@@ -69,54 +154,94 @@ function isInTypePosition(path: any): boolean {
     ) {
       // 特殊处理: 枚举成员值需要进行替换，但枚举成员名称不需要
       if (t.isTSEnumMember(parent) && (parent as any).initializer === current.node) {
-        return false; // 枚举成员的值需要替换，所以不在类型位置
+        return {
+          shouldProcess: true,
+          contextType: 'enum-value',
+          reason: '枚举值'
+        };
       }
-      return true;
+      return {
+        shouldProcess: false,
+        contextType: 'ts-definition',
+        reason: 'TypeScript类型定义'
+      };
     }
 
     // 增强的联合类型检测
     if (t.isTSUnionType(parent)) {
       // 检查当前节点是否是联合类型的成员
       if (parent.types && parent.types.includes(current.node)) {
-        return true;
+        return {
+          shouldProcess: false,
+          contextType: 'type-annotation',
+          reason: '联合类型成员'
+        };
       }
       // 检查是否在联合类型的字面量类型中
       if (t.isTSLiteralType(current.parent) && parent.types.includes(current.parent)) {
-        return true;
+        return {
+          shouldProcess: false,
+          contextType: 'type-annotation',
+          reason: '联合类型字面量'
+        };
       }
     }
 
     // 检查是否在接口属性的类型注解中
     if (t.isTSPropertySignature(parent)) {
       if (parent.typeAnnotation && parent.typeAnnotation.typeAnnotation === current.node) {
-        return true;
+        return {
+          shouldProcess: false,
+          contextType: 'type-annotation',
+          reason: '接口属性类型注解'
+        };
       }
       // 检查接口属性的类型注解内部
       if (t.isTSTypeAnnotation(current.parent) && parent.typeAnnotation === current.parent) {
-        return true;
+        return {
+          shouldProcess: false,
+          contextType: 'type-annotation',
+          reason: '接口属性类型注解'
+        };
       }
     }
 
     // 检查是否在类型别名定义中
     if (t.isTSTypeAliasDeclaration(parent)) {
       if (parent.typeAnnotation === current.node) {
-        return true;
+        return {
+          shouldProcess: false,
+          contextType: 'ts-definition',
+          reason: '类型别名定义'
+        };
       }
     }
 
     // 检查是否在泛型参数中
     if (t.isTSTypeParameterInstantiation(parent)) {
-      return true;
+      return {
+        shouldProcess: false,
+        contextType: 'type-annotation',
+        reason: '泛型参数'
+      };
     }
 
     // 检查是否在类属性的键位置
     if (t.isClassProperty(parent) && parent.key === current.node) {
-      return true;
+      return {
+        shouldProcess: false,
+        contextType: 'object-key',
+        reason: '类属性名'
+      };
     }
 
     // 检查是否在成员表达式的属性位置 (obj.property)
     if (t.isMemberExpression(parent) && parent.property === current.node && !parent.computed) {
-      return true;
+      return {
+        shouldProcess: false,
+        contextType: 'object-key',
+        reason: '成员表达式属性名'
+      };
     }
 
     // 增强的函数参数类型检测
@@ -131,7 +256,11 @@ function isInTypePosition(path: any): boolean {
           if (t.isIdentifier(param) && param.typeAnnotation) {
             const typeNode = (param.typeAnnotation as any).typeAnnotation;
             if (isNodeInTypeAnnotation(current.node, typeNode)) {
-              return true;
+              return {
+                shouldProcess: false,
+                contextType: 'type-annotation',
+                reason: '函数参数类型注解'
+              };
             }
           }
         }
@@ -142,7 +271,19 @@ function isInTypePosition(path: any): boolean {
     current = parentPath;
   }
 
-  return false;
+  // 默认情况，应该处理
+  return {
+    shouldProcess: true,
+    contextType: 'code',
+    reason: '代码中的字符串'
+  };
+}
+
+/**
+ * 检查节点是否在不应该替换的位置（向后兼容）
+ */
+function isInTypePosition(path: any): boolean {
+  return !analyzeContext(path).shouldProcess;
 }
 
 /**
@@ -265,6 +406,9 @@ export interface CheckResult {
     text: string;
     type: 'string' | 'template' | 'jsx-text' | 'jsx-attribute';
     context?: string;
+    shouldProcess: boolean;
+    contextType: 'code' | 'comment' | 'ts-definition' | 'object-key' | 'enum-value' | 'import-export' | 'type-annotation';
+    reason?: string; // 不应该处理的原因
   }>;
 }
 
@@ -279,17 +423,47 @@ export async function checkUnwrappedChinese(): Promise<CheckResult[]> {
   Logger.verbose(`配置信息: 
     - include: ${JSON.stringify(config.include)}
     - exclude: ${JSON.stringify(config.exclude)}
+    - tempDir: ${config.tempDir || '无'}
     - functionName: ${functionName}`);
 
   Logger.info('搜索目标文件...', 'verbose');
-  const files = await findTargetFiles(config.include, config.exclude);
+  
+  let files: string[];
+  let sourceDescription: string;
+  
+  // 优先检查tempDir，如果存在且有文件则使用；否则使用include配置
+  if (config.tempDir) {
+    try {
+      // 检查tempDir是否存在文件
+      const tempFiles = await findTargetFiles([`${config.tempDir}/**/*.{js,jsx,ts,tsx}`], config.exclude);
+      if (tempFiles.length > 0) {
+        files = tempFiles;
+        sourceDescription = `临时目录 (${config.tempDir})`;
+        Logger.info(`使用临时目录文件进行检查: ${config.tempDir}`, 'verbose');
+      } else {
+        // tempDir存在但无文件，使用原始文件
+        files = await findTargetFiles(config.include, config.exclude);
+        sourceDescription = '原始文件';
+        Logger.info('临时目录无文件，使用原始文件进行检查', 'verbose');
+      }
+    } catch (error) {
+      // tempDir访问失败，使用原始文件
+      files = await findTargetFiles(config.include, config.exclude);
+      sourceDescription = '原始文件';
+      Logger.verbose(`临时目录访问失败: ${error}, 使用原始文件进行检查`);
+    }
+  } else {
+    // 没有tempDir配置，使用include配置
+    files = await findTargetFiles(config.include, config.exclude);
+    sourceDescription = '原始文件';
+  }
 
   if (files.length === 0) {
-    Logger.warn('没有找到匹配的文件', 'normal');
+    Logger.warn(`在${sourceDescription}中没有找到匹配的文件`, 'normal');
     return [];
   }
 
-  Logger.info(`找到 ${files.length} 个文件需要检查`, 'normal');
+  Logger.info(`找到 ${files.length} 个文件需要检查 (来源: ${sourceDescription})`, 'normal');
 
   const results: CheckResult[] = [];
   let processedCount = 0;
@@ -320,7 +494,7 @@ export async function checkUnwrappedChinese(): Promise<CheckResult[]> {
     traverse(ast, {
       // 检查字符串字面量
       StringLiteral(path: any) {
-        if (isInTypePosition(path)) return;
+        const contextAnalysis = analyzeContext(path, codeLines);
 
         const parentPath = path.parentPath;
         if (parentPath && isI18nFunctionCall(parentPath, functionName)) return;
@@ -335,6 +509,9 @@ export async function checkUnwrappedChinese(): Promise<CheckResult[]> {
               text: stringValue,
               type: 'string',
               context: getContextInfo(path, codeLines),
+              shouldProcess: contextAnalysis.shouldProcess,
+              contextType: contextAnalysis.contextType,
+              reason: contextAnalysis.reason,
             });
           }
         }
@@ -342,7 +519,7 @@ export async function checkUnwrappedChinese(): Promise<CheckResult[]> {
 
       // 检查模板字符串
       TemplateLiteral(path: any) {
-        if (isInTypePosition(path)) return;
+        const contextAnalysis = analyzeContext(path, codeLines);
 
         const parentPath = path.parentPath;
         if (parentPath && isI18nFunctionCall(parentPath, functionName)) return;
@@ -359,6 +536,9 @@ export async function checkUnwrappedChinese(): Promise<CheckResult[]> {
                 text: raw,
                 type: 'template',
                 context: getContextInfo(path, codeLines),
+                shouldProcess: contextAnalysis.shouldProcess,
+                contextType: contextAnalysis.contextType,
+                reason: contextAnalysis.reason,
               });
             }
           }
@@ -375,6 +555,9 @@ export async function checkUnwrappedChinese(): Promise<CheckResult[]> {
                 text: expr.value,
                 type: 'template',
                 context: getContextInfo(path, codeLines),
+                shouldProcess: contextAnalysis.shouldProcess,
+                contextType: contextAnalysis.contextType,
+                reason: contextAnalysis.reason,
               });
             }
           }
@@ -385,6 +568,8 @@ export async function checkUnwrappedChinese(): Promise<CheckResult[]> {
       JSXText(path: any) {
         const textValue = path.node.value;
         if (textValue && typeof textValue === 'string' && containsChinese(textValue)) {
+          const contextAnalysis = analyzeContext(path, codeLines);
+
           const parentPath = path.parentPath;
           if (
             parentPath?.isJSXExpressionContainer() &&
@@ -404,6 +589,9 @@ export async function checkUnwrappedChinese(): Promise<CheckResult[]> {
                 text: trimmedValue,
                 type: 'jsx-text',
                 context: getContextInfo(path, codeLines),
+                shouldProcess: contextAnalysis.shouldProcess,
+                contextType: contextAnalysis.contextType,
+                reason: contextAnalysis.reason,
               });
             }
           }
@@ -418,6 +606,8 @@ export async function checkUnwrappedChinese(): Promise<CheckResult[]> {
           typeof path.node.value.value === 'string' &&
           containsChinese(path.node.value.value)
         ) {
+          const contextAnalysis = analyzeContext(path, codeLines);
+
           if (
             t.isJSXExpressionContainer(path.node.value) &&
             path.node.value.expression &&
@@ -435,6 +625,9 @@ export async function checkUnwrappedChinese(): Promise<CheckResult[]> {
               text: attributeValue,
               type: 'jsx-attribute',
               context: getContextInfo(path, codeLines),
+              shouldProcess: contextAnalysis.shouldProcess,
+              contextType: contextAnalysis.contextType,
+              reason: contextAnalysis.reason,
             });
           }
         }
@@ -508,7 +701,6 @@ export async function scanAndReplaceAll(): Promise<void> {
   // 获取模板字符串配置
   const templateConfig = config.replacement?.templateString ?? {
     enabled: true,
-    minChineseLength: 2,
     preserveExpressions: true,
     splitStrategy: 'smart',
   };
@@ -519,7 +711,6 @@ export async function scanAndReplaceAll(): Promise<void> {
     - 自动导入: ${autoImportEnabled ? '启用' : '禁用'}
     - 插入位置: ${insertPosition}
     - 模板字符串处理: ${templateConfig.enabled ? '启用' : '禁用'}
-    - 最小中文长度: ${templateConfig.minChineseLength}
     - 拆分策略: ${templateConfig.splitStrategy}`);
 
   // 统计变量
@@ -589,20 +780,16 @@ export async function scanAndReplaceAll(): Promise<void> {
 
         const raw = path.node.value?.raw;
         if (raw && typeof raw === 'string' && containsChinese(raw)) {
-          // 检查中文片段长度是否满足最小要求
+          // 检查中文片段
           const chineseMatches = raw.match(/[\u4e00-\u9fa5]+/g);
-          const minLength = templateConfig.minChineseLength ?? 2;
-          if (chineseMatches && chineseMatches.some((match) => match.length >= minLength)) {
+          if (chineseMatches && chineseMatches.length > 0) {
             // 应用不同的拆分策略
             if (templateConfig.splitStrategy === 'conservative') {
               // 保守策略：只替换独立的中文片段
               const result = raw.replace(/[\u4e00-\u9fa5]+/g, (match: string) => {
-                if (match.length >= minLength) {
-                  const key = createI18nKey(match);
-                  const quoteChar = quoteType === 'single' ? "'" : '"';
-                  return '${' + functionName + '(' + quoteChar + key + quoteChar + ')}';
-                }
-                return match;
+                const key = createI18nKey(match);
+                const quoteChar = quoteType === 'single' ? "'" : '"';
+                return '${' + functionName + '(' + quoteChar + key + quoteChar + ')}';
               });
               path.node.value.raw = result;
               path.node.value.cooked = result;
@@ -625,7 +812,7 @@ export async function scanAndReplaceAll(): Promise<void> {
               const quoteChar = quoteType === 'single' ? "'" : '"';
 
               for (const part of parts) {
-                if (/^[\u4e00-\u9fa5]+$/.test(part) && part.length >= minLength) {
+                if (/^[\u4e00-\u9fa5]+$/.test(part)) {
                   const key = createI18nKey(part);
                   result += '${' + functionName + '(' + quoteChar + key + quoteChar + ')}';
                 } else {
@@ -668,19 +855,15 @@ export async function scanAndReplaceAll(): Promise<void> {
         path.node.quasis.forEach((quasi: any) => {
           if (quasi?.value?.raw && containsChinese(quasi.value.raw)) {
             const raw = quasi.value.raw;
-            // 检查中文片段长度是否满足最小要求
+            // 检查中文片段
             const chineseMatches = raw.match(/[\u4e00-\u9fa5]+/g);
-            const minLength = templateConfig.minChineseLength ?? 2;
 
-            if (chineseMatches?.some((match: string) => match.length >= minLength)) {
+            if (chineseMatches && chineseMatches.length > 0) {
               // 在模板字符串内部替换中文为 ${$t('key')} 格式
               const newRaw = raw.replace(/[\u4e00-\u9fa5]+/g, (match: string) => {
-                if (match.length >= minLength) {
-                  const key = createI18nKey(match);
-                  const quoteChar = quoteType === 'single' ? "'" : '"';
-                  return '${' + functionName + '(' + quoteChar + key + quoteChar + ')}';
-                }
-                return match;
+                const key = createI18nKey(match);
+                const quoteChar = quoteType === 'single' ? "'" : '"';
+                return '${' + functionName + '(' + quoteChar + key + quoteChar + ')}';
               });
 
               if (newRaw !== raw) {

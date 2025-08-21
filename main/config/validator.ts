@@ -85,9 +85,7 @@ export class ConfigValidator {
       warnings.forEach((warning) => Logger.warn(`  - ${warning}`, 'normal'));
     }
 
-    if (isValid && warnings.length === 0) {
-      Logger.verbose('配置验证通过，无警告');
-    }
+    // 移除"配置验证通过，无警告"输出以减少日志噪音
 
     return { isValid, errors, warnings };
   }

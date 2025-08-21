@@ -56,7 +56,6 @@ export const defaultConfig: I18nConfig = {
     useOriginalTextAsKey: false, // 默认使用生成的key
     templateString: {
       enabled: true, // 默认启用模板字符串智能处理
-      minChineseLength: 2, // 中文片段最小长度
       preserveExpressions: true, // 默认保留原始表达式
       splitStrategy: 'smart', // 默认智能拆分策略
     },

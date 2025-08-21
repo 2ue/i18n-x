@@ -53,6 +53,7 @@ program
   .option('-s, --summary', '使用简略输出格式，只显示文件路径和中文文案（默认启用）')
   .option('--detailed', '使用详细输出格式，显示完整信息')
   .option('--no-file', '不生成文件，仅在控制台输出摘要')
+  .option('--include <types>', '指定要包含的内容类型：need（需要处理但未处理）, ignored（已忽略）, all（全部）', 'need')
   .action(checkCommand);
 
 program

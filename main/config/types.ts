@@ -45,7 +45,6 @@ export interface I18nConfig {
     templateString?: {
       // 模板字符串处理配置
       enabled?: boolean; // 是否启用模板字符串智能处理，默认 true
-      minChineseLength?: number; // 中文片段最小长度，默认 2
       preserveExpressions?: boolean; // 是否保留原始表达式，默认 true
       splitStrategy?: 'smart' | 'aggressive' | 'conservative'; // 拆分策略，默认 'smart'
     };
