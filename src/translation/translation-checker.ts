@@ -121,6 +121,11 @@ async function checkTargetLanguage(
     const sourceText = sourceData[key];
     const targetText = targetData[key];
 
+    // 确保源文本存在
+    if (!sourceText) {
+      continue;
+    }
+
     if (!targetText) {
       // 目标文件中缺少该键
       missingKeys.push(key);
@@ -211,7 +216,12 @@ export async function checkTranslationCompleteness(
       exists = false;
     }
 
-    const targetFileInfo = {
+    const targetFileInfo: {
+      language: string;
+      filePath: string;
+      exists: boolean;
+      result?: TranslationCheckResult;
+    } = {
       language: targetLanguage,
       filePath: targetFilePath,
       exists,

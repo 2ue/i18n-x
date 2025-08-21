@@ -2,9 +2,7 @@
   "locale": "zh-CN",
   "displayLanguage": "en-US",
   "outputDir": "locales",
-  "include": [
-    "src/**/*.{js,ts,jsx,tsx}"
-  ],
+  "include": ["src/**/*.{js,ts,jsx,tsx}"],
   "exclude": [
     "node_modules/**",
     "dist/**",
