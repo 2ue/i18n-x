@@ -1,6 +1,6 @@
 {
   "name": "i18n-xy",
-  "version": "0.0.26",
+  "version": "0.0.27",
   "description": "自动提取React项目中的中文字符串并进行国际化的CLI工具",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
