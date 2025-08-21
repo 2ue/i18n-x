@@ -1,4 +1,4 @@
-import { checkUnwrappedChinese } from '../ast';
+import { checkUnwrappedChinese, CheckResult } from '../ast';
 import { ConfigManager, loadConfig } from '../config';
 import { ConfigValidator } from '../utils/config-validator';
 import { writeFileWithTempDir } from '../utils/fs';
@@ -14,12 +14,12 @@ interface CheckUnwrappedOptions {
 /**
  * 生成简略格式的检查报告
  */
-function generateSimpleReport(results: any[]): string {
+function generateSimpleReport(results: CheckResult[]): string {
   let report = '# 国际化检查报告（简略版）\n\n';
 
   results.forEach((result) => {
     report += `## 📄 ${result.file}\n\n`;
-    result.issues.forEach((issue: any) => {
+    result.issues.forEach((issue) => {
       report += `- ${issue.text}\n`;
     });
     report += '\n';
@@ -31,7 +31,7 @@ function generateSimpleReport(results: any[]): string {
 /**
  * 生成详细格式的检查报告
  */
-function generateDetailedReport(results: any[]): string {
+function generateDetailedReport(results: CheckResult[]): string {
   let report = '# 国际化检查报告\n\n';
   report += `## 检查摘要\n\n`;
 
@@ -46,10 +46,10 @@ function generateDetailedReport(results: any[]): string {
     report += `### 📄 ${result.file}\n\n`;
     report += `发现 ${result.issues.length} 个未国际化的中文字符串：\n\n`;
 
-    result.issues.forEach((issue: any, index: number) => {
+    result.issues.forEach((issue, index: number) => {
       report += `${index + 1}. **[行 ${issue.line}:列 ${issue.column}]** - \`${issue.type}\`\n`;
       report += `   - **文本**: "${issue.text}"\n`;
-      report += `   - **上下文**: \`${issue.context}\`\n\n`;
+      report += `   - **上下文**: \`${issue.context ?? '无上下文'}\`\n\n`;
     });
 
     report += '---\n\n';

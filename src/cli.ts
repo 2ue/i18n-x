@@ -172,7 +172,7 @@ program
   .alias('ct')
   .description('检查语言文件的翻译完整性')
   .option('-c, --config <path>', '指定配置文件路径', './i18n.config.json')
-  .option('-l, --languages <languages>', '指定要检查的目标语言，用逗号分隔', 'en-US,ja-JP,ko-KR')
+  .option('-l, --languages <languages>', '指定要检查的目标语言，用逗号分隔（未指定时自动从outputDir发现）')
   .option('-o, --output <path>', '指定报告输出路径（Markdown格式）')
   .option('-s, --summary', '简略模式：仅显示前20个缺失的键和未翻译条目')
   .action(checkTranslationCommand);

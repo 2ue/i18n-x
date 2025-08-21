@@ -1,6 +1,6 @@
 import { ConfigManager, loadConfig } from '../config';
 import { TranslationManager } from './manager';
-import { readFile, fileExists } from '../utils/fs';
+import { readFile, fileExists, findTargetFiles } from '../utils/fs';
 import { Logger } from '../utils/logger';
 import { ConfigValidator } from '../utils/config-validator';
 import { checkTranslationCompleteness } from './translation-checker';
@@ -299,10 +299,42 @@ export async function checkTranslationCommand(options: CheckOptions): Promise<vo
     ConfigValidator.checkConfigConsistency();
     Logger.info('配置加载完成，开始执行翻译完整性检查流程...', 'verbose');
 
-    // 解析目标语言
-    const languagesStr = options.languages || 'en-US,ja-JP,ko-KR';
-    const targetLanguages = languagesStr.split(',').map((lang: string) => lang.trim());
-    Logger.verbose(`目标语言: ${targetLanguages.join(', ')}`);
+    let targetLanguages: string[];
+
+    if (options.languages) {
+      // 如果指定了语言参数，使用指定的语言
+      targetLanguages = options.languages.split(',').map((lang: string) => lang.trim());
+      Logger.verbose(`使用指定的目标语言: ${targetLanguages.join(', ')}`);
+    } else {
+      // 如果未指定语言参数，从outputDir自动发现JSON文件
+      const config = ConfigManager.get();
+      const outputDir = config.outputDir ?? './locales';
+      const sourceLocale = config.locale ?? 'zh-CN';
+
+      Logger.info(`未指定目标语言，自动从 ${outputDir} 目录发现语言文件...`, 'normal');
+
+      try {
+        // 使用findTargetFiles发现outputDir中的所有JSON文件
+        const jsonFiles = await findTargetFiles([`${outputDir}/*.json`]);
+        
+        // 提取语言代码（排除源语言）
+        targetLanguages = jsonFiles
+          .map(file => path.basename(file, '.json'))
+          .filter(locale => locale !== sourceLocale);
+
+        if (targetLanguages.length === 0) {
+          Logger.info(`在 ${outputDir} 目录中未发现除源语言 ${sourceLocale} 之外的其他语言文件`, 'normal');
+          Logger.info('请先生成翻译文件或使用 -l 参数指定目标语言', 'normal');
+          return;
+        }
+
+        Logger.info(`自动发现的目标语言: ${targetLanguages.join(', ')}`, 'normal');
+      } catch (error) {
+        Logger.error(`读取 ${outputDir} 目录失败: ${error}`, 'minimal');
+        Logger.info('请使用 -l 参数手动指定目标语言', 'normal');
+        return;
+      }
+    }
 
     // 执行翻译完整性检查
     const summary = await checkTranslationCompleteness(targetLanguages);
@@ -333,9 +365,13 @@ export async function checkTranslationCommand(options: CheckOptions): Promise<vo
           Logger.info(`❌ ${targetFile.language}: 缺失 (完成度: N/A)`, 'normal');
         } else {
           const result = targetFile.result!;
-          const statusIcon = result.completionRate >= 95 ? '✅' : result.completionRate >= 50 ? '⚠️' : '❌';
-          Logger.info(`${statusIcon} ${targetFile.language}: 存在 (完成度: ${result.completionRate.toFixed(1)}%)`, 'normal');
-          
+          const statusIcon =
+            result.completionRate >= 95 ? '✅' : result.completionRate >= 50 ? '⚠️' : '❌';
+          Logger.info(
+            `${statusIcon} ${targetFile.language}: 存在 (完成度: ${result.completionRate.toFixed(1)}%)`,
+            'normal'
+          );
+
           if (result.untranslatedKeys > 0) {
             Logger.info(`   - 未翻译条目: ${result.untranslatedKeys}个`, 'normal');
           }
