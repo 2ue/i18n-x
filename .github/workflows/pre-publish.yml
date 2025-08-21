@@ -17,7 +17,7 @@ jobs:
       - name: Set timezone to Asia/Shanghai
         uses: szenius/set-timezone@v2.0
         with:
-          timezoneLinux: "Asia/Shanghai"
+          timezoneLinux: 'Asia/Shanghai'
 
       - name: Echo current time
         run: timedatectl
@@ -74,7 +74,7 @@ jobs:
         with:
           filters: |
             update:
-              - 'src/**'
+              - 'main/**'
               - 'docs/**'
               - README.md
               - package.json
