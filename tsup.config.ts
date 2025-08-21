@@ -3,7 +3,7 @@ import { defineConfig } from 'tsup';
 export default defineConfig([
   // Library build
   {
-    entry: ['src/index.ts'],
+    entry: ['main/index.ts'],
     format: ['esm', 'cjs'],
     dts: true,
     splitting: false,
@@ -17,7 +17,7 @@ export default defineConfig([
   },
   // CLI build - 使用 CommonJS 格式避免 ESM 兼容性问题
   {
-    entry: ['src/cli.ts'],
+    entry: { cli: 'main/cli/index.ts' },
     format: ['cjs'],
     dts: false,
     splitting: false,

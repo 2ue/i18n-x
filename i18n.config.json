@@ -1,8 +1,8 @@
 {
   "locale": "zh-CN",
   "displayLanguage": "en-US",
-  "outputDir": "locales",
-  "tempDir": "test/temp",
+  "outputDir": "test-output/locales",
+  "tempDir": "test-output",
   "include": ["test/demo/**/*.{js,jsx,ts,tsx}"],
   "exclude": ["node_modules/**", "dist/**", "build/**", "**/*.spec.{js,jsx,ts,tsx}"],
   "keyGeneration": {
