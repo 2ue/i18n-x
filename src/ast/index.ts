@@ -701,7 +701,9 @@ export async function scanAndReplaceAll(): Promise<void> {
               const callExpression = createI18nCallExpression(functionName, key, quoteType);
               path.node.expressions[index] = callExpression;
               hasModified = true;
-              Logger.verbose(`替换模板字符串表达式中的字符串: "${stringValue}" -> ${functionName}('${key}')`);
+              Logger.verbose(
+                `替换模板字符串表达式中的字符串: "${stringValue}" -> ${functionName}('${key}')`
+              );
             }
           });
         }

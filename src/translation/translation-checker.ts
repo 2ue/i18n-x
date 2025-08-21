@@ -44,7 +44,11 @@ function containsChinese(str: string): boolean {
  * 检查字符串是否可能是翻译后的文本
  * 如果文本与原文相同或只包含中文，则认为可能未翻译
  */
-function isPossiblyUntranslated(originalText: string, translatedText: string, targetLang: string): boolean {
+function isPossiblyUntranslated(
+  originalText: string,
+  translatedText: string,
+  targetLang: string
+): boolean {
   // 如果翻译后的文本与原文完全相同，认为未翻译
   if (originalText === translatedText) {
     return true;
@@ -68,7 +72,7 @@ function isPossiblyUntranslated(originalText: string, translatedText: string, ta
 async function readLanguageFile(filePath: string): Promise<Record<string, string> | null> {
   try {
     const content = await fs.readFile(filePath, 'utf-8');
-    return JSON.parse(content);
+    return JSON.parse(content) as Record<string, string>;
   } catch (error) {
     Logger.verbose(`无法读取语言文件: ${filePath} - ${error}`);
     return null;
@@ -104,7 +108,6 @@ async function checkTargetLanguage(
   }
 
   const sourceKeys = Object.keys(sourceData);
-  const targetKeys = Object.keys(targetData);
   const missingKeys: string[] = [];
   const untranslatedEntries: Array<{
     key: string;
@@ -255,10 +258,14 @@ export async function checkTranslationCompleteness(
 /**
  * 生成翻译完整性检查的Markdown报告
  */
-export function generateTranslationReport(summary: TranslationCheckSummary): string {
+export function generateTranslationReport(
+  summary: TranslationCheckSummary,
+  summaryMode: boolean = false
+): string {
   const timestamp = new Date().toLocaleString('zh-CN');
+  const modeText = summaryMode ? '（简略模式）' : '';
 
-  let report = `# 翻译完整性检查报告
+  let report = `# 翻译完整性检查报告${modeText}
 
 **生成时间**: ${timestamp}
 
@@ -282,7 +289,9 @@ export function generateTranslationReport(summary: TranslationCheckSummary): str
 
   for (const targetFile of summary.targetFiles) {
     const exists = targetFile.exists ? '✅ 存在' : '❌ 不存在';
-    const completionRate = targetFile.result ? `${targetFile.result.completionRate.toFixed(1)}%` : 'N/A';
+    const completionRate = targetFile.result
+      ? `${targetFile.result.completionRate.toFixed(1)}%`
+      : 'N/A';
     const translated = targetFile.result ? targetFile.result.translatedKeys.toString() : 'N/A';
     const untranslated = targetFile.result ? targetFile.result.untranslatedKeys.toString() : 'N/A';
     const missing = targetFile.result ? targetFile.result.missingKeys.length.toString() : 'N/A';
@@ -308,7 +317,8 @@ export function generateTranslationReport(summary: TranslationCheckSummary): str
     }
 
     const result = targetFile.result!;
-    const statusIcon = result.completionRate >= 95 ? '✅' : result.completionRate >= 50 ? '⚠️' : '❌';
+    const statusIcon =
+      result.completionRate >= 95 ? '✅' : result.completionRate >= 50 ? '⚠️' : '❌';
 
     report += `### ${statusIcon} ${targetFile.language} - 完成度 ${result.completionRate.toFixed(1)}%
 
@@ -323,33 +333,47 @@ export function generateTranslationReport(summary: TranslationCheckSummary): str
 `;
 
     if (result.missingKeys.length > 0) {
-      report += `**缺失的键** (${result.missingKeys.length}个):
-\`\`\`
-${result.missingKeys.join('\n')}
-\`\`\`
+      const displayLimit = summaryMode ? 20 : result.missingKeys.length;
+      const keysToShow = result.missingKeys.slice(0, displayLimit);
 
-`;
+      report += `**缺失的键** (${result.missingKeys.length}个${summaryMode && result.missingKeys.length > 20 ? '，仅显示前20个' : ''}):
+\`\`\`
+${keysToShow.join('\n')}
+\`\`\``;
+
+      if (summaryMode && result.missingKeys.length > 20) {
+        report += `\n*... 还有 ${result.missingKeys.length - 20} 个缺失的键*`;
+      }
+
+      report += `\n\n`;
     }
 
-    if (result.untranslatedEntries.length > 0 && result.untranslatedEntries.length <= 50) {
-      report += `**未翻译的条目** (${result.untranslatedEntries.length}个):
+    if (result.untranslatedEntries.length > 0) {
+      const displayLimit = summaryMode ? 20 : 50;
+      const entriesToShow = result.untranslatedEntries.slice(0, displayLimit);
+
+      if (result.untranslatedEntries.length <= displayLimit || summaryMode) {
+        report += `**未翻译的条目** (${result.untranslatedEntries.length}个${summaryMode && result.untranslatedEntries.length > 20 ? '，仅显示前20个' : ''}):
 
 | 键名 | 原文 |
 |------|------|
 `;
-      for (const entry of result.untranslatedEntries.slice(0, 50)) {
-        const safeKey = entry.key.replace(/\|/g, '\\|');
-        const safeText = entry.sourceText.replace(/\|/g, '\\|').replace(/\n/g, ' ');
-        report += `| \`${safeKey}\` | ${safeText} |\n`;
-      }
+        for (const entry of entriesToShow) {
+          const safeKey = entry.key.replace(/\|/g, '\\|');
+          const safeText = entry.sourceText.replace(/\|/g, '\\|').replace(/\n/g, ' ');
+          report += `| \`${safeKey}\` | ${safeText} |\n`;
+        }
 
-      if (result.untranslatedEntries.length > 50) {
-        report += `\n*... 还有 ${result.untranslatedEntries.length - 50} 个未翻译的条目*\n`;
-      }
-    } else if (result.untranslatedEntries.length > 50) {
-      report += `**未翻译的条目**: 共 ${result.untranslatedEntries.length} 个（过多，仅显示统计数据）
+        if (summaryMode && result.untranslatedEntries.length > 20) {
+          report += `\n*... 还有 ${result.untranslatedEntries.length - 20} 个未翻译的条目*\n`;
+        } else if (!summaryMode && result.untranslatedEntries.length > 50) {
+          report += `\n*... 还有 ${result.untranslatedEntries.length - 50} 个未翻译的条目*\n`;
+        }
+      } else {
+        report += `**未翻译的条目**: 共 ${result.untranslatedEntries.length} 个（过多，仅显示统计数据）
 
 `;
+      }
     }
 
     report += `---
@@ -362,7 +386,7 @@ ${result.missingKeys.join('\n')}
 
 `;
 
-  const missingLanguages = summary.targetFiles.filter(f => !f.exists);
+  const missingLanguages = summary.targetFiles.filter((f) => !f.exists);
   if (missingLanguages.length > 0) {
     report += `### 创建缺失的语言文件
 
@@ -386,7 +410,9 @@ i18n-xy translate -t en-US,ja-JP,ko-KR
 `;
   }
 
-  const incompleteLanguages = summary.targetFiles.filter(f => f.exists && f.result && f.result.completionRate < 95);
+  const incompleteLanguages = summary.targetFiles.filter(
+    (f) => f.exists && f.result && f.result.completionRate < 95
+  );
   if (incompleteLanguages.length > 0) {
     report += `### 完善未完成的翻译
 
@@ -411,7 +437,17 @@ i18n-xy translate -t en-US --incremental
 
   report += `---
 
-*报告由 [i18n-xy](https://github.com/your-org/i18n-xy) 自动生成*
+`;
+
+  // 添加简略模式说明
+  if (summaryMode) {
+    report += `**注意**: 此报告以简略模式生成，每个语言最多显示20个缺失的键和未翻译的条目。  
+如需查看完整详情，请去除 \`-s\` 或 \`--summary\` 参数。
+
+`;
+  }
+
+  report += `*报告由 [i18n-xy](https://github.com/your-org/i18n-xy) 自动生成*
 `;
 
   return report;

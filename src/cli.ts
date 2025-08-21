@@ -3,7 +3,10 @@ import { Command } from 'commander';
 const inquirer = require('inquirer').default ?? require('inquirer');
 import { loadConfig, ConfigManager } from './config';
 import { scanAndReplaceAll, checkUnwrappedChinese, CheckResult } from './ast';
-import { checkTranslationCompleteness, generateTranslationReport } from './translation/translation-checker';
+import {
+  checkTranslationCompleteness,
+  generateTranslationReport,
+} from './translation/translation-checker';
 import {
   writeJson,
   findTargetFiles,
@@ -298,12 +301,13 @@ program
   .option('-c, --config <path>', '指定配置文件路径', './i18n.config.json')
   .option('-l, --languages <languages>', '指定要检查的目标语言，用逗号分隔', 'en-US,ja-JP,ko-KR')
   .option('-o, --output <path>', '指定报告输出路径（Markdown格式）')
+  .option('-s, --summary', '简略模式：仅显示前20个缺失的键和未翻译条目')
   .action(async (options) => {
     try {
       Logger.info(`加载配置文件: ${options.config}`, 'verbose');
       const configObj = loadConfig(options.config);
       ConfigManager.init(configObj);
-      
+
       // 验证配置
       const validation = ConfigValidator.validateConfigUsage();
       if (!validation.isValid) {
@@ -322,7 +326,7 @@ program
       const summary = await checkTranslationCompleteness(targetLanguages);
 
       // 生成详细报告
-      const report = generateTranslationReport(summary);
+      const report = generateTranslationReport(summary, options.summary || false);
 
       // 输出结果
       if (options.output) {
@@ -344,12 +348,22 @@ program
         // 显示各语言状态
         for (const targetFile of summary.targetFiles) {
           const status = targetFile.exists ? '存在' : '缺失';
-          const completionRate = targetFile.result ? `${targetFile.result.completionRate.toFixed(1)}%` : 'N/A';
-          const statusIcon = targetFile.exists ? 
-            (targetFile.result!.completionRate >= 95 ? '✅' : targetFile.result!.completionRate >= 50 ? '⚠️' : '❌') : '❌';
-          
-          Logger.info(`${statusIcon} ${targetFile.language}: ${status} (完成度: ${completionRate})`, 'normal');
-          
+          const completionRate = targetFile.result
+            ? `${targetFile.result.completionRate.toFixed(1)}%`
+            : 'N/A';
+          const statusIcon = targetFile.exists
+            ? targetFile.result!.completionRate >= 95
+              ? '✅'
+              : targetFile.result!.completionRate >= 50
+                ? '⚠️'
+                : '❌'
+            : '❌';
+
+          Logger.info(
+            `${statusIcon} ${targetFile.language}: ${status} (完成度: ${completionRate})`,
+            'normal'
+          );
+
           if (targetFile.result && targetFile.result.untranslatedKeys > 0) {
             Logger.info(`   - 未翻译条目: ${targetFile.result.untranslatedKeys}个`, 'normal');
           }
@@ -359,7 +373,6 @@ program
         Logger.info(`💡 提示: 使用 -o 参数生成详细的Markdown报告`, 'normal');
         Logger.info(`   示例: i18n-xy check-translation -o translation-report.md`, 'normal');
       }
-
     } catch (error) {
       Logger.error(`翻译完整性检查过程中发生错误: ${error}`, 'minimal');
       process.exit(1);
