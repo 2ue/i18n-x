@@ -3,15 +3,8 @@
   "displayLanguage": "en-US",
   "outputDir": "locales",
   "tempDir": "test/temp",
-  "include": [
-    "test/demo/**/*.{js,jsx,ts,tsx}"
-  ],
-  "exclude": [
-    "node_modules/**",
-    "dist/**",
-    "build/**",
-    "**/*.spec.{js,jsx,ts,tsx}"
-  ],
+  "include": ["test/demo/**/*.{js,jsx,ts,tsx}"],
+  "exclude": ["node_modules/**", "dist/**", "build/**", "**/*.spec.{js,jsx,ts,tsx}"],
   "keyGeneration": {
     "maxChineseLength": 10,
     "hashLength": 6,

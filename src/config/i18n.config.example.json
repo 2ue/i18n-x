@@ -3,11 +3,7 @@
   "displayLanguage": "en-US",
   "outputDir": "locales",
   "tempDir": "temp-i18n",
-  "include": [
-    "src/**/*.{js,jsx,ts,tsx}",
-    "pages/**/*.{js,jsx,ts,tsx}",
-    "components/**/*.{js,jsx,ts,tsx}"
-  ],
+  "include": ["src/**/*.{js,ts,jsx,tsx}"],
   "exclude": [
     "node_modules/**",
     "dist/**",
