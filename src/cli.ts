@@ -3,10 +3,8 @@ import { Command } from 'commander';
 const inquirer = require('inquirer').default ?? require('inquirer');
 import { loadConfig, ConfigManager } from './config';
 import { scanAndReplaceAll, checkUnwrappedChinese, CheckResult } from './ast';
-import {
-  checkTranslationCompleteness,
-  generateTranslationReport,
-} from './translation/translation-checker';
+import { checkTranslationCompleteness } from './translation/translation-checker';
+import { generateTranslationReport } from './translation/reports';
 import {
   writeJson,
   findTargetFiles,
@@ -326,7 +324,7 @@ program
       const summary = await checkTranslationCompleteness(targetLanguages);
 
       // 生成详细报告
-      const report = generateTranslationReport(summary, options.summary || false);
+      const report = generateTranslationReport(summary, { summaryMode: options.summary || false });
 
       // 输出结果
       if (options.output) {
